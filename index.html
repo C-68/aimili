@@ -3,65 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>520 · 我们的照片墙</title>
+<title>520 · 星辰回忆</title>
 <style>
   /* ═══════════ 全局 ═══════════ */
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
   body{
     overflow:hidden;font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;
     -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
-    /* 暖粉色渐变背景 */
-    background:linear-gradient(155deg,#fce4ec 0%,#f8d0dc 18%,#fce4ec 36%,#fef0f4 55%,#fce4ec 75%,#f0d4e0 100%);
-    background-attachment:fixed;min-height:100vh;
+    /* 深紫色星空背景 */
+    background:radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#0d0018 45%,#050010 100%);
+    min-height:100vh;
   }
 
   /* ═══════════ 粒子画布 ═══════════ */
   #particles-canvas{
-    position:fixed;top:0;left:0;width:100%;height:100%;
-    z-index:1;pointer-events:none;
+    position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;
   }
 
-  /* ═══════════ 照片面板（可拖拽缩放） ═══════════ */
+  /* ═══════════ 照片面板 ═══════════ */
   #board-viewport{
-    position:fixed;inset:0;z-index:2;
-    overflow:hidden;cursor:grab;
+    position:fixed;inset:0;z-index:2;overflow:hidden;cursor:grab;
   }
-  #board-viewport:active{cursor:grabbing}
-  #board-viewport.grabbing{cursor:grabbing}
+  #board-viewport:active,#board-viewport.grabbing{cursor:grabbing}
   #board{
-    position:absolute;top:50%;left:50%;
-    transform-origin:0 0;
-    width:0;height:0;
+    position:absolute;top:50%;left:50%;transform-origin:0 0;width:0;height:0;
   }
 
-  /* ═══════════ 照片卡片（拍立得风格） ═══════════ */
+  /* ═══════════ 照片卡片（白边框拍立得） ═══════════ */
   .photo-card{
-    position:absolute;
-    background:#fff;
-    padding:9px 9px 32px 9px;
-    border-radius:3px;
-    box-shadow:2px 4px 16px rgba(0,0,0,.10),1px 2px 6px rgba(0,0,0,.06);
+    position:absolute;background:#fafafa;
+    padding:10px 10px 36px 10px;border-radius:4px;
+    box-shadow:0 4px 20px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.2),0 0 0 1px rgba(255,255,255,.04);
     cursor:pointer;transition:box-shadow .35s,z-index .35s;
     will-change:transform;
   }
   .photo-card:hover{
-    box-shadow:4px 8px 28px rgba(255,64,128,.22),2px 4px 14px rgba(255,107,157,.12);
+    box-shadow:0 8px 32px rgba(255,64,128,.25),0 2px 8px rgba(0,0,0,.25),0 0 0 2px rgba(255,107,157,.3);
     z-index:50!important;
   }
-  .photo-card.enlarged{
-    z-index:200!important;
-    box-shadow:0 16px 60px rgba(255,64,128,.25),0 4px 20px rgba(0,0,0,.12);
-  }
   .photo-card .card-img{
-    display:block;width:160px;height:120px;
-    object-fit:cover;border-radius:1px;
-    background:linear-gradient(135deg,#fce4ec,#f8d0dc);
-    pointer-events:none;
+    display:block;width:160px;height:120px;object-fit:cover;border-radius:1px;
+    background:linear-gradient(135deg,#1a0a2e,#2d1040);pointer-events:none;
   }
   .photo-card .card-cap{
-    font-size:10px;color:#c09098;text-align:center;
-    margin-top:7px;letter-spacing:.06em;white-space:nowrap;
-    pointer-events:none;
+    font-size:10px;color:#a08090;text-align:center;margin-top:8px;letter-spacing:.06em;
+    white-space:nowrap;pointer-events:none;
   }
 
   /* ═══════════ UI 层 ═══════════ */
@@ -71,54 +57,49 @@
     padding:24px 16px 20px;transition:opacity .5s;
   }
   .ui-layer>*{pointer-events:auto}
-
   .header{text-align:center}
   .title-main{
-    font-size:clamp(38px,6vw,58px);font-weight:900;
-    background:linear-gradient(135deg,#e91e63,#f06292,#ec407a);
+    font-size:clamp(40px,6vw,60px);font-weight:900;
+    background:linear-gradient(135deg,#ff6b9d,#ff2d78,#e040ff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    filter:drop-shadow(0 0 18px rgba(233,30,99,.25));letter-spacing:.1em;
+    filter:drop-shadow(0 0 22px rgba(255,64,128,.35));letter-spacing:.1em;line-height:1.1;
   }
   .title-sub{
-    font-size:clamp(11px,1.8vw,14px);color:rgba(180,100,120,.75);letter-spacing:.18em;margin-top:2px;
+    font-size:clamp(11px,1.8vw,14px);color:rgba(255,180,210,.7);letter-spacing:.18em;margin-top:2px;
   }
-
   .footer{display:flex;flex-direction:column;align-items:center;gap:10px}
-  .btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .btn-row{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
   .btn{
     display:flex;align-items:center;gap:5px;
-    padding:9px 18px;border:1.5px solid rgba(233,30,99,.28);border-radius:50px;
-    background:rgba(255,255,255,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    color:#c04860;font-size:13px;cursor:pointer;transition:all .3s;letter-spacing:.04em;white-space:nowrap;
+    padding:9px 17px;border:1.5px solid rgba(255,107,157,.25);border-radius:50px;
+    background:rgba(20,0,40,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#d090b0;font-size:13px;cursor:pointer;transition:all .3s;letter-spacing:.04em;white-space:nowrap;
   }
-  .btn:hover{background:rgba(255,255,255,.82);border-color:rgba(233,30,99,.5);color:#c03050;box-shadow:0 0 20px rgba(233,30,99,.12)}
-  .btn.active{border-color:#e91e63;background:rgba(255,240,245,.9);color:#b01040;font-weight:600}
-  .btn svg{width:16px;height:16px;opacity:.75}
+  .btn:hover{background:rgba(40,5,60,.75);border-color:rgba(255,107,157,.5);color:#ffb3d9;box-shadow:0 0 20px rgba(255,64,128,.15)}
+  .btn.active{border-color:#ff6b9d;background:rgba(60,10,80,.8);color:#fff;box-shadow:0 0 18px rgba(255,64,128,.2)}
+  .btn svg{width:16px;height:16px;opacity:.8}
+  .hint{font-size:11px;color:rgba(200,150,180,.35);letter-spacing:.06em}
 
-  .hint{font-size:11px;color:rgba(180,100,120,.42);letter-spacing:.06em}
-
-  /* ═══════════ 全屏放大浮层 ═══════════ */
+  /* ═══════════ 全屏放大 ═══════════ */
   #enlarge-overlay{
     position:fixed;inset:0;z-index:80;
-    background:rgba(30,5,10,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    background:rgba(5,0,12,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
     display:flex;align-items:center;justify-content:center;
     opacity:0;pointer-events:none;transition:opacity .4s;
   }
   #enlarge-overlay.show{opacity:1;pointer-events:auto}
   #enlarge-overlay img{
-    max-width:84vw;max-height:80vh;border-radius:10px;
-    box-shadow:0 0 80px rgba(255,64,128,.3),0 0 160px rgba(255,107,157,.15);
+    max-width:84vw;max-height:78vh;border-radius:10px;
+    box-shadow:0 0 80px rgba(255,64,128,.35),0 0 160px rgba(255,107,157,.15);
     transform:scale(.88);transition:transform .4s;
   }
   #enlarge-overlay.show img{transform:scale(1)}
   #enlarge-close{
-    position:absolute;top:20px;right:24px;
-    width:42px;height:42px;border-radius:50%;
-    border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.05);
-    color:#fff;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    transition:all .3s;
+    position:absolute;top:20px;right:24px;width:42px;height:42px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.05);
+    color:#fff;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;
   }
-  #enlarge-close:hover{background:rgba(255,64,128,.28);border-color:#f06292}
+  #enlarge-close:hover{background:rgba(255,64,128,.3);border-color:#f06292}
   #enlarge-caption{
     position:absolute;bottom:36px;left:50%;transform:translateX(-50%);text-align:center;color:#fff;
   }
@@ -128,55 +109,49 @@
   /* ═══════════ Toast ═══════════ */
   #toast{
     position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:90;
-    pointer-events:none;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    border:1px solid rgba(233,30,99,.22);color:#b04050;padding:8px 20px;border-radius:50px;
+    pointer-events:none;background:rgba(20,0,40,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(255,107,157,.25);color:#d090b0;padding:8px 20px;border-radius:50px;
     font-size:12px;letter-spacing:.05em;opacity:0;transition:opacity .35s;
   }
   #toast.show{opacity:1}
 
-  /* ═══════════ 响应式 ═══════════ */
   @media(max-width:600px){
-    .photo-card{padding:6px 6px 22px 6px}
+    .photo-card{padding:6px 6px 24px 6px}
     .photo-card .card-img{width:120px;height:90px}
     .photo-card .card-cap{font-size:9px;margin-top:5px}
-    .btn{padding:7px 13px;font-size:11px;gap:3px}
+    .btn{padding:7px 12px;font-size:11px;gap:3px}
     .btn svg{width:14px;height:14px}
   }
 </style>
 </head>
 <body>
 
-<!-- 粒子画布 -->
 <canvas id="particles-canvas"></canvas>
 
-<!-- 照片面板 -->
-<div id="board-viewport">
-  <div id="board"></div>
-</div>
+<div id="board-viewport"><div id="board"></div></div>
 
-<!-- UI -->
 <div class="ui-layer" id="uiLayer">
   <div class="header">
     <div class="title-main">520</div>
-    <div class="title-sub">我 们 的 回 忆</div>
+    <div class="title-sub">我 们 的 星 辰 回 忆</div>
   </div>
   <div class="footer">
     <div class="btn-row" id="modeBtns">
-      <button class="btn active" data-mode="scatter">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        散落拼贴
-      </button>
-      <button class="btn" data-mode="grid">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="13" y="3" width="7" height="7"/><rect x="3" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></svg>
-        整齐行列
+      <button class="btn active" data-mode="spiral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="4" ry="10"/><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>
+        双螺旋
       </button>
       <button class="btn" data-mode="heart">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.7 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg>
         心形
       </button>
       <button class="btn" data-mode="circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
-        圆形环绕
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="3" r="1.5"/></svg>
+        圆形
+      </button>
+      <button class="btn" data-mode="scatter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="18" cy="4" r="1.5"/><circle cx="10" cy="18" r="1.5"/><circle cx="18" cy="15" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="14" cy="8" r="1.5"/></svg>
+        散落星辰
       </button>
     </div>
     <div class="btn-row">
@@ -189,26 +164,20 @@
         重置视角
       </button>
     </div>
-    <span class="hint">拖拽平移 · 滚轮缩放 · 悬停看细节 · 点击全屏</span>
+    <span class="hint">拖拽平移 · 滚轮缩放 · 悬停预览 · 点击全屏</span>
   </div>
 </div>
 
-<!-- 全屏浮层 -->
 <div id="enlarge-overlay">
   <button id="enlarge-close">✕</button>
   <img id="enlarge-img" src="" alt="">
-  <div id="enlarge-caption">
-    <div class="cap-t" id="capT"></div>
-    <div class="cap-s" id="capS"></div>
-  </div>
+  <div id="enlarge-caption"><div class="cap-t" id="capT"></div><div class="cap-s" id="capS"></div></div>
 </div>
 
 <div id="toast"></div>
 <input type="file" id="fileInput" webkitdirectory multiple accept="image/*" style="display:none">
 
-<!-- ============ CDN ============ -->
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-
 <script>
 (function(){
 'use strict';
@@ -217,433 +186,270 @@
 // ║  📸 照片配置 — 替换路径和文案即可              ║
 // ╚══════════════════════════════════════════════════╝
 var PHOTO_LIST = [
-  { title:'初见那天',   sub:'First Sight' },
-  { title:'第一次约会', sub:'First Date' },
-  { title:'一起看日落', sub:'Golden Hour' },
-  { title:'你的笑容',   sub:'Your Smile' },
-  { title:'海边的我们', sub:'By the Sea' },
-  { title:'星光下约定', sub:'Under Stars' },
-  { title:'甜蜜日常',   sub:'Sweet Days' },
-  { title:'我们的歌',   sub:'Our Song' },
-  { title:'温暖拥抱',   sub:'Warm Hug' },
-  { title:'未来可期',   sub:'Forever' },
-  { title:'一起旅行',   sub:'Travel' },
-  { title:'生日惊喜',   sub:'Birthday' },
-  { title:'心动瞬间',   sub:'Heartbeat' },
-  { title:'专属回忆',   sub:'Memory' },
-  { title:'只属我们',   sub:'Only Us' },
-  { title:'默契十足',   sub:'Chemistry' },
-  { title:'小确幸',     sub:'Little Joy' },
-  { title:'有你相伴',   sub:'Together' },
-  { title:'520 ❤',     sub:'I Love You' },
-  { title:'永远',       sub:'Eternity' },
+  {title:'初见那天',sub:'First Sight'},{title:'第一次约会',sub:'First Date'},
+  {title:'一起看日落',sub:'Golden Hour'},{title:'你的笑容',sub:'Your Smile'},
+  {title:'海边的我们',sub:'By the Sea'},{title:'星光下约定',sub:'Under Stars'},
+  {title:'甜蜜日常',sub:'Sweet Days'},{title:'我们的歌',sub:'Our Song'},
+  {title:'温暖拥抱',sub:'Warm Hug'},{title:'未来可期',sub:'Forever'},
+  {title:'一起旅行',sub:'Travel'},{title:'生日惊喜',sub:'Birthday'},
+  {title:'心动瞬间',sub:'Heartbeat'},{title:'专属回忆',sub:'Memory'},
+  {title:'只属我们',sub:'Only Us'},{title:'默契十足',sub:'Chemistry'},
+  {title:'小确幸',sub:'Little Joy'},{title:'有你相伴',sub:'Together'},
+  {title:'520 ❤',sub:'I Love You'},{title:'永远',sub:'Eternity'},
 ];
-var PHOTO_COUNT = PHOTO_LIST.length; // 20
+var N = PHOTO_LIST.length;
 
-// ═══════════════════════════════════
-//  DOM
-// ═══════════════════════════════════
-var board         = document.getElementById('board');
-var viewport      = document.getElementById('board-viewport');
-var enlargeOver   = document.getElementById('enlarge-overlay');
-var enlargeImg    = document.getElementById('enlarge-img');
-var enlargeClose  = document.getElementById('enlarge-close');
-var capT          = document.getElementById('capT');
-var capS          = document.getElementById('capS');
-var toastEl       = document.getElementById('toast');
-var btnPick       = document.getElementById('btnPick');
-var btnReset      = document.getElementById('btnReset');
-var fileInput     = document.getElementById('fileInput');
-var particlesCanvas = document.getElementById('particles-canvas');
+// ═══════════════════════════════
+//  DOM refs
+// ═══════════════════════════════
+var board=document.getElementById('board'),viewport=document.getElementById('board-viewport');
+var enlargeOver=document.getElementById('enlarge-overlay'),enlargeImg=document.getElementById('enlarge-img');
+var enlargeClose=document.getElementById('enlarge-close');
+var capT=document.getElementById('capT'),capS=document.getElementById('capS');
+var toastEl=document.getElementById('toast');
+var btnPick=document.getElementById('btnPick'),btnReset=document.getElementById('btnReset');
+var fileInput=document.getElementById('fileInput');
+var particlesCanvas=document.getElementById('particles-canvas');
+var HAS_GSAP=typeof gsap!=='undefined';
 
-var HAS_GSAP = typeof gsap !== 'undefined';
+// ═══════════════════════════════
+//  粒子系统
+// ═══════════════════════════════
+var pCtx=particlesCanvas.getContext('2d');
+function resizePC(){particlesCanvas.width=window.innerWidth;particlesCanvas.height=window.innerHeight}
+resizePC();window.addEventListener('resize',resizePC);
 
-// ═══════════════════════════════════
-//  粒子系统（独立 canvas）
-// ═══════════════════════════════════
-var pCtx = particlesCanvas.getContext('2d');
-var particles = [];
-
-function resizeParticlesCanvas(){
-  particlesCanvas.width = window.innerWidth;
-  particlesCanvas.height = window.innerHeight;
-}
-resizeParticlesCanvas();
-window.addEventListener('resize',resizeParticlesCanvas);
-
-// 创建粒子：爱心 + 光点
-for(var i=0;i<80;i++){
+var particles=[];
+for(var i=0;i<100;i++){
   particles.push({
-    x:Math.random()*particlesCanvas.width,
-    y:Math.random()*particlesCanvas.height,
-    size:.6+Math.random()*3.5,
-    speedX:(Math.random()-.5)*.25,
-    speedY:-.3-Math.random()*.6,
-    opacity:.15+Math.random()*.45,
-    hue:Math.random()<.6?340+Math.random()*30:25+Math.random()*15, // 粉/金色
-    type:Math.random()<.25?'heart':'dot',
-    life:Math.random(),
-    maxLife:.6+Math.random()*.4
+    x:Math.random()*particlesCanvas.width,y:Math.random()*particlesCanvas.height,
+    size:.4+Math.random()*3,spdX:(Math.random()-.5)*.2,spdY:-.2-Math.random()*.5,
+    alpha:.15+Math.random()*.5,
+    hue:Math.random()<.55?330+Math.random()*35:Math.random()<.5?30+Math.random()*20:250+Math.random()*30,
+    type:Math.random()<.2?'heart':'dot',life:Math.random(),maxLife:.5+Math.random()*.5
   });
 }
 
-function drawHeart(ctx,x,y,s){
+function drawHeartCtx(ctx,x,y,s){
   ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.beginPath();
-  var d=.05;
-  for(var t=0;t<Math.PI*2;t+=d){
-    var px=16*Math.pow(Math.sin(t),3);
-    var py=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+  for(var t=0;t<Math.PI*2;t+=.04){
+    var px=16*Math.pow(Math.sin(t),3),py=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
     t===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
   }
   ctx.closePath();ctx.fill();ctx.restore();
 }
 
-function animateParticles(){
+(function animParticles(){
   pCtx.clearRect(0,0,particlesCanvas.width,particlesCanvas.height);
-
   for(var i=0;i<particles.length;i++){
-    var p=particles[i];
-    p.life+=.003;if(p.life>p.maxLife){p.life=0;p.x=Math.random()*particlesCanvas.width;p.y=particlesCanvas.height+10}
-
-    p.x+=p.speedX;p.y+=p.speedY;
-    if(p.y<-20)p.y=particlesCanvas.height+10;
-    if(p.x<-20)p.x=particlesCanvas.width+20;
-    if(p.x>particlesCanvas.width+20)p.x=-20;
-
-    var alpha=p.opacity*(1-Math.abs(p.life-p.maxLife/2)/(p.maxLife/2));
-    pCtx.fillStyle='hsla('+p.hue+',70%,65%,'+alpha+')';
-
-    if(p.type==='heart'){
-      drawHeart(pCtx,p.x,p.y,p.size*.06);
-    }else{
-      pCtx.beginPath();pCtx.arc(p.x,p.y,p.size,0,Math.PI*2);pCtx.fill();
-    }
+    var p=particles[i];p.life+=.002;
+    if(p.life>p.maxLife){p.life=0;p.x=Math.random()*particlesCanvas.width;p.y=particlesCanvas.height+10}
+    p.x+=p.spdX;p.y+=p.spdY;
+    if(p.y<-20)p.y=particlesCanvas.height+10;if(p.x<-20)p.x=particlesCanvas.width+20;if(p.x>particlesCanvas.width+20)p.x=-20;
+    var a=p.alpha*(1-Math.abs(p.life-p.maxLife/2)/(p.maxLife/2));
+    pCtx.fillStyle='hsla('+p.hue+',65%,68%,'+a+')';
+    if(p.type==='heart')drawHeartCtx(pCtx,p.x,p.y,p.size*.05);
+    else{pCtx.beginPath();pCtx.arc(p.x,p.y,p.size,0,Math.PI*2);pCtx.fill()}
   }
-  requestAnimationFrame(animateParticles);
-}
-animateParticles();
+  requestAnimationFrame(animParticles);
+})();
 
-// ═══════════════════════════════════
+// ═══════════════════════════════
 //  创建照片卡片
-// ═══════════════════════════════════
-var cards = []; // { el, img, capEl, data, index }
-
-PHOTO_LIST.forEach(function(data,i){
-  var el = document.createElement('div');
-  el.className = 'photo-card';
-  el.style.zIndex = i;
-
-  var img = document.createElement('img');
-  img.className = 'card-img';
-  img.src = genPlaceholderURL(i);
-  img.draggable = false;
-
-  var cap = document.createElement('div');
-  cap.className = 'card-cap';
-  cap.textContent = data.title;
-
-  el.appendChild(img);
-  el.appendChild(cap);
-  board.appendChild(el);
-
-  el.addEventListener('click',function(e){
-    if(dragMoved)return;
-    enlargeCard(i);
-  });
-
-  cards.push({el:el,img:img,capEl:cap,data:data,index:i});
-});
-
-// 占位图生成
+// ═══════════════════════════════
+var cards=[];
 function genPlaceholderURL(idx){
   var sz=200,c=document.createElement('canvas');
   c.width=sz;c.height=Math.round(sz*.75);
   var ctx=c.getContext('2d');
-  var hue=(340+idx*17)%360;
+  var hue=(320+idx*18)%360;
   var g=ctx.createLinearGradient(0,0,sz,sz*.75);
-  g.addColorStop(0,'hsl('+hue+',55%,72%)');
-  g.addColorStop(.5,'hsl('+((hue+20)%360)+',50%,64%)');
-  g.addColorStop(1,'hsl('+((hue+45)%360)+',45%,56%)');
+  g.addColorStop(0,'hsl('+hue+',55%,28%)');
+  g.addColorStop(.5,'hsl('+((hue+25)%360)+',50%,20%)');
+  g.addColorStop(1,'hsl('+((hue+50)%360)+',45%,16%)');
   ctx.fillStyle=g;ctx.fillRect(0,0,sz,sz*.75);
-  ctx.fillStyle='rgba(255,255,255,.28)';ctx.font='48px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.font='48px serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('❤',sz/2,sz*.375);
-  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='16px sans-serif';
+  ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='16px sans-serif';
   ctx.fillText(String(idx+1),sz/2,sz*.56);
   return c.toDataURL('image/jpeg',.85);
 }
 
-// ═══════════════════════════════════
-//  排列模式定义（每张照片的 {x,y,rotation}）
-// ═══════════════════════════════════
+PHOTO_LIST.forEach(function(d,i){
+  var el=document.createElement('div');el.className='photo-card';el.style.zIndex=i;
+  var img=document.createElement('img');img.className='card-img';img.src=genPlaceholderURL(i);img.draggable=false;
+  var cap=document.createElement('div');cap.className='card-cap';cap.textContent=d.title;
+  el.appendChild(img);el.appendChild(cap);board.appendChild(el);
+  el.addEventListener('click',function(e){if(dragMoved)return;enlargeCard(i)});
+  cards.push({el:el,img:img,capEl:cap,data:d,index:i});
+});
 
-// --- 辅助：心形曲线 ---
-function heartPos(t){
-  var s=7.5; // scale
-  var x=16*Math.pow(Math.sin(t),3);
-  var y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
-  return {x:x*s, y:y*s};
-}
+// ═══════════════════════════════
+//  4 种排列模式
+// ═══════════════════════════════
+function seedRand(s){return function(){s=(s*16807+0)%2147483647;return(s-1)/2147483646}}
 
-var layouts = {
-  // 散落拼贴
-  scatter: (function(){
-    // 使用种子随机使每次生成一致
-    var rng=seedRandom(42);
-    var pts=[];
-    for(var i=0;i<PHOTO_COUNT;i++){
-      pts.push({
-        x:(rng()-0.5)*1300,
-        y:(rng()-0.5)*900,
-        rotation:(rng()-0.5)*26
-      });
+var layouts={
+  // 双螺旋：两个相交椭圆环，无可见轨道线
+  spiral:(function(){
+    var pts=[],half=N/2;
+    // 环1：水平椭圆，半径 rx=420 ry=280
+    for(var i=0;i<half;i++){
+      var a=(i/half)*Math.PI*2;
+      pts.push({x:Math.cos(a)*420,y:Math.sin(a)*280,rot:0});
+    }
+    // 环2：倾斜椭圆（数学上旋转45度的椭圆 = 参数方程变换）
+    var cos45=Math.cos(Math.PI/4),sin45=Math.sin(Math.PI/4);
+    for(var i=0;i<half;i++){
+      var a=(i/half)*Math.PI*2+Math.PI/half; // 相位错开
+      var rx=340,ry=220;
+      var x0=Math.cos(a)*rx,y0=Math.sin(a)*ry;
+      var x=x0*cos45-y0*sin45,y=x0*sin45+y0*cos45;
+      pts.push({x:x,y:y-40,rot:45});
     }
     return pts;
   })(),
 
-  // 整齐行列 4×5
-  grid: (function(){
-    var pts=[],cols=5,rows=4,gapX=200,gapY=200;
-    var startX=-(cols-1)*gapX/2,startY=-(rows-1)*gapY/2;
-    for(var i=0;i<PHOTO_COUNT;i++){
-      var col=i%cols,row=Math.floor(i/cols);
-      pts.push({x:startX+col*gapX,y:startY+row*gapY,rotation:0});
+  // 心形
+  heart:(function(){
+    var pts=[];
+    for(var i=0;i<N;i++){
+      var t=(i/N)*Math.PI*2;
+      var x=16*Math.pow(Math.sin(t),3),y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+      var s=8.5;
+      var t2=t+.01;
+      var x2=16*Math.pow(Math.sin(t2),3),y2=-(13*Math.cos(t2)-5*Math.cos(2*t2)-2*Math.cos(3*t2)-Math.cos(4*t2));
+      var ang=Math.atan2(y2-y,x2-x)*180/Math.PI+90;
+      pts.push({x:x*s,y:y*s-25,rot:ang});
     }
     return pts;
   })(),
 
-  // 心形排列
-  heart: (function(){
-    var pts=[];
-    for(var i=0;i<PHOTO_COUNT;i++){
-      var t=(i/PHOTO_COUNT)*Math.PI*2;
-      var p=heartPos(t);
-      // 加一点随机扰动
-      p.x+=(Math.random()-.5)*40;
-      p.y+=(Math.random()-.5)*40;
-      // 计算心形切线方向作为旋转
-      var t2=t+.01;var p2=heartPos(t2);
-      var angle=Math.atan2(p2.y-p.y,p2.x-p.x)*180/Math.PI+90;
-      pts.push({x:p.x,y:p.y-30,rotation:angle});
-    }
+  // 圆形环绕：3层同心圆
+  circle:(function(){
+    var pts=[],layers=[{r:400,n:8},{r:270,n:7},{r:150,n:5}];
+    layers.forEach(function(l){
+      for(var i=0;i<l.n;i++){
+        var a=(i/l.n)*Math.PI*2-Math.PI/2;
+        pts.push({x:Math.cos(a)*l.r,y:Math.sin(a)*l.r,rot:a*180/Math.PI});
+      }
+    });
     return pts;
   })(),
 
-  // 圆形环绕（2层同心圆）
-  circle: (function(){
-    var pts=[];
-    var outerN=12,innerN=8,outerR=380,innerR=220;
-    for(var i=0;i<outerN;i++){
-      var a=(i/outerN)*Math.PI*2-Math.PI/2;
-      pts.push({x:Math.cos(a)*outerR,y:Math.sin(a)*outerR,rotation:a*180/Math.PI});
-    }
-    for(var i=0;i<innerN;i++){
-      var a=(i/innerN)*Math.PI*2-Math.PI/2+Math.PI/innerN;
-      pts.push({x:Math.cos(a)*innerR,y:Math.sin(a)*innerR,rotation:a*180/Math.PI});
-    }
+  // 散落星辰
+  scatter:(function(){
+    var rng=seedRand(42),pts=[];
+    for(var i=0;i<N;i++)pts.push({x:(rng()-.5)*1300,y:(rng()-.5)*900,rot:(rng()-.5)*28});
     return pts;
   })()
 };
 
-// 伪随机数生成器
-function seedRandom(s){
-  return function(){
-    s=(s*16807+0)%2147483647;
-    return (s-1)/2147483646;
-  };
-}
+// ═══════════════════════════════
+//  布局切换 (GSAP)
+// ═══════════════════════════════
+var currentMode='spiral',isAnim=false;
 
-// ═══════════════════════════════════
-//  将卡片应用布局（GSAP 动画）
-// ═══════════════════════════════════
-var currentMode='scatter';
-var isAnimating=false;
-
-function applyLayout(mode,animate){
-  var targets=layouts[mode];
-  if(!targets)return;
-  currentMode=mode;
-
-  cards.forEach(function(card,i){
-    var tgt=targets[i]||targets[i%targets.length];
-    if(animate&&HAS_GSAP){
-      gsap.to(card.el,{x:tgt.x,y:tgt.y,rotation:tgt.rotation,duration:1.1,delay:i*.025,ease:'power2.inOut'});
-    }else{
-      card.el.style.transform='translate('+tgt.x+'px,'+tgt.y+'px) rotate('+tgt.rotation+'deg)';
-    }
+function applyLayout(mode,anim){
+  var tgts=layouts[mode];if(!tgts)return;currentMode=mode;
+  cards.forEach(function(c,i){
+    var t=tgts[i]||tgts[i%tgts.length];
+    if(anim&&HAS_GSAP)gsap.to(c.el,{x:t.x,y:t.y,rotation:t.rot,duration:1.1,delay:i*.022,ease:'power2.inOut'});
+    else c.el.style.transform='translate('+t.x+'px,'+t.y+'px) rotate('+t.rot+'deg)';
   });
 }
 
-// ═══════════════════════════════════
-//  模式切换按钮
-// ═══════════════════════════════════
 var modeBtns=document.querySelectorAll('#modeBtns .btn');
-modeBtns.forEach(function(btn){
-  btn.addEventListener('click',function(){
-    if(isAnimating)return;
-    var mode=btn.dataset.mode;
-    if(mode===currentMode)return;
-    modeBtns.forEach(function(b){b.classList.remove('active')});
-    btn.classList.add('active');
-    isAnimating=true;
-    applyLayout(mode,true);
-    setTimeout(function(){isAnimating=false},1300);
-    var names={scatter:'散落拼贴',grid:'整齐行列',heart:'心形排列',circle:'圆形环绕'};
-    showToast('切换到 '+names[mode]+' ✨');
-  });
-});
+modeBtns.forEach(function(b){b.addEventListener('click',function(){
+  if(isAnim)return;var m=b.dataset.mode;if(m===currentMode)return;
+  modeBtns.forEach(function(x){x.classList.remove('active')});b.classList.add('active');
+  isAnim=true;applyLayout(m,true);setTimeout(function(){isAnim=false},1400);
+  var names={spiral:'双螺旋',heart:'心形',circle:'圆形',scatter:'散落星辰'};
+  showToast('切换到 '+names[m]+' ✨');
+})});
 
-// 初始布局
-applyLayout('scatter',false);
+applyLayout('spiral',false);
 
-// ═══════════════════════════════════
-//  面板平移 + 缩放
-// ═══════════════════════════════════
-var panX=0,panY=0,zoom=1;
-var isPanning=false,startPX=0,startPY=0,startPanX=0,startPanY=0;
-var dragMoved=false;
-var MIN_ZOOM=.35,MAX_ZOOM=3.5;
+// ═══════════════════════════════
+//  平移 + 缩放
+// ═══════════════════════════════
+var panX=0,panY=0,zoom=1,MIN_Z=.3,MAX_Z=4;
+var isPanning=false,startPX=0,startPY=0,startPanX=0,startPanY=0,dragMoved=false;
 
-function updateBoardTransform(){
-  board.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
-}
+function updateBoard(){board.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')'}
 
-// 鼠标事件
 viewport.addEventListener('mousedown',function(e){
-  isPanning=true;dragMoved=false;
-  startPX=e.clientX;startPY=e.clientY;
-  startPanX=panX;startPanY=panY;
-  viewport.classList.add('grabbing');
+  isPanning=true;dragMoved=false;startPX=e.clientX;startPY=e.clientY;startPanX=panX;startPanY=panY;viewport.classList.add('grabbing');
 });
 window.addEventListener('mousemove',function(e){
   if(!isPanning)return;
   var dx=e.clientX-startPX,dy=e.clientY-startPY;
   if(Math.abs(dx)>2||Math.abs(dy)>2)dragMoved=true;
-  panX=startPanX+dx;panY=startPanY+dy;
-  updateBoardTransform();
+  panX=startPanX+dx;panY=startPanY+dy;updateBoard();
 });
-window.addEventListener('mouseup',function(){
-  isPanning=false;viewport.classList.remove('grabbing');
-});
+window.addEventListener('mouseup',function(){isPanning=false;viewport.classList.remove('grabbing')});
 viewport.addEventListener('wheel',function(e){
   e.preventDefault();
-  var rect=viewport.getBoundingClientRect();
-  var mx=e.clientX-rect.left,my=e.clientY-rect.top;
-  var oldZoom=zoom;
-  zoom+=e.deltaY*-.001;
-  zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,zoom));
-  // 以鼠标位置为中心缩放
-  panX=mx-(mx-panX)*(zoom/oldZoom);
-  panY=my-(my-panY)*(zoom/oldZoom);
-  updateBoardTransform();
+  var rect=viewport.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  var old=zoom;zoom+=e.deltaY*-.001;zoom=Math.max(MIN_Z,Math.min(MAX_Z,zoom));
+  panX=mx-(mx-panX)*(zoom/old);panY=my-(my-panY)*(zoom/old);updateBoard();
 },{passive:false});
 
-// 触摸事件
-var lastTouches=null,lastPinch=0,pinchMid={x:0,y:0};
+// 触摸
 viewport.addEventListener('touchstart',function(e){
-  if(e.touches.length===1){
-    isPanning=true;dragMoved=false;
-    startPX=e.touches[0].clientX;startPY=e.touches[0].clientY;
-    startPanX=panX;startPanY=panY;
-  }
-  if(e.touches.length===2){
-    lastTouches=[e.touches[0],e.touches[1]];
-    lastPinch=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY);
-    pinchMid.x=(lastTouches[0].clientX+lastTouches[1].clientX)/2;
-    pinchMid.y=(lastTouches[0].clientY+lastTouches[1].clientY)/2;
-  }
+  if(e.touches.length===1){isPanning=true;dragMoved=false;startPX=e.touches[0].clientX;startPY=e.touches[0].clientY;startPanX=panX;startPanY=panY}
 },{passive:false});
 viewport.addEventListener('touchmove',function(e){
   if(e.touches.length===1&&isPanning){
     var dx=e.touches[0].clientX-startPX,dy=e.touches[0].clientY-startPY;
     if(Math.abs(dx)>3||Math.abs(dy)>3)dragMoved=true;
-    panX=startPanX+dx;panY=startPanY+dy;
-    updateBoardTransform();
-  }
-  if(e.touches.length===2){
-    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    var midX=(e.touches[0].clientX+e.touches[1].clientX)/2;
-    var midY=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    var oldZoom=zoom;
-    zoom*=(d/lastPinch);
-    zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,zoom));
-    panX=midX-(midX-panX)*(zoom/oldZoom);
-    panY=midY-(midY-panY)*(zoom/oldZoom);
-    lastPinch=d;
-    updateBoardTransform();
+    panX=startPanX+dx;panY=startPanY+dy;updateBoard();
   }
 },{passive:false});
 viewport.addEventListener('touchend',function(){isPanning=false});
 
-// 双击重置
 viewport.addEventListener('dblclick',function(){
-  if(HAS_GSAP){
-    gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){
-      panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoardTransform();
-    }});
-  }else{panX=0;panY=0;zoom=1;updateBoardTransform()}
+  if(HAS_GSAP)gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoard()}});
+  else{panX=0;panY=0;zoom=1;updateBoard()}
   showToast('视角已重置');
 });
 
-// ═══════════════════════════════════
-//  点击照片 → 全屏放大
-// ═══════════════════════════════════
-var enlargedIndex=-1;
-
-function enlargeCard(index){
-  if(enlargedIndex>=0)return;
-  enlargedIndex=index;
-  var card=cards[index];
-
-  // 获取图片源
-  enlargeImg.src=card.img.src;
-  capT.textContent=card.data.title;
-  capS.textContent=card.data.sub;
-  enlargeOver.classList.add('show');
-
-  // 高亮当前卡片
-  card.el.classList.add('enlarged');
+// ═══════════════════════════════
+//  全屏放大
+// ═══════════════════════════════
+var enlargedIdx=-1;
+function enlargeCard(i){
+  if(enlargedIdx>=0)return;enlargedIdx=i;
+  var c=cards[i];enlargeImg.src=c.img.src;capT.textContent=c.data.title;capS.textContent=c.data.sub;
+  enlargeOver.classList.add('show');c.el.classList.add('enlarged');
 }
-
 function closeEnlarge(){
-  if(enlargedIndex<0)return;
-  enlargeOver.classList.remove('show');
-  if(cards[enlargedIndex])cards[enlargedIndex].el.classList.remove('enlarged');
-  enlargedIndex=-1;
+  if(enlargedIdx<0)return;enlargeOver.classList.remove('show');
+  cards[enlargedIdx].el.classList.remove('enlarged');enlargedIdx=-1;
 }
-
 enlargeClose.addEventListener('click',closeEnlarge);
 enlargeOver.addEventListener('click',function(e){if(e.target===enlargeOver)closeEnlarge()});
 
-// ═══════════════════════════════════
-//  按钮：重置视角
-// ═══════════════════════════════════
 btnReset.addEventListener('click',function(){
   closeEnlarge();
-  if(HAS_GSAP){
-    gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){
-      panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoardTransform();
-    }});
-  }else{panX=0;panY=0;zoom=1;updateBoardTransform()}
+  if(HAS_GSAP)gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoard()}});
+  else{panX=0;panY=0;zoom=1;updateBoard()}
   showToast('视角已重置');
 });
 
-// ═══════════════════════════════════
-//  键盘快捷键
-// ═══════════════════════════════════
+// ═══════════════════════════════
+//  键盘
+// ═══════════════════════════════
 window.addEventListener('keydown',function(e){
   if(e.key==='Escape'){closeEnlarge();return}
-  switch(e.key){
-    case'1':modeBtns[0].click();break;
-    case'2':modeBtns[1].click();break;
-    case'3':modeBtns[2].click();break;
-    case'4':modeBtns[3].click();break;
-    case'h':document.querySelector('.ui-layer').style.opacity=document.querySelector('.ui-layer').style.opacity==='0'?'1':'0';break;
-  }
+  var keys={1:'spiral',2:'heart',3:'circle',4:'scatter'};
+  if(keys[e.key]){var b=document.querySelector('[data-mode='+keys[e.key]+']');if(b)b.click()}
+  if(e.key.toLowerCase()==='h'){var op=document.querySelector('.ui-layer').style.opacity;document.querySelector('.ui-layer').style.opacity=op==='0'?'1':'0'}
 });
 
-// ═══════════════════════════════════
+// ═══════════════════════════════
 //  文件加载
-// ═══════════════════════════════════
+// ═══════════════════════════════
 function showToast(msg,dur){
   dur=dur||2000;toastEl.textContent=msg;toastEl.classList.add('show');
   clearTimeout(toastEl._tid);toastEl._tid=setTimeout(function(){toastEl.classList.remove('show')},dur);
@@ -655,14 +461,11 @@ function loadImageFile(file){
     reader.onload=function(e){
       var img=new Image();
       img.onload=function(){
-        var canvas=document.createElement('canvas');
-        var tw=320,th=240;canvas.width=tw;canvas.height=th;
-        var ctx=canvas.getContext('2d');
-        var iw=img.width,ih=img.height,tr=4/3,ir=iw/ih,sx,sy,sw,sh;
+        var c=document.createElement('canvas'),tw=320,th=240;c.width=tw;c.height=th;
+        var ctx=c.getContext('2d'),iw=img.width,ih=img.height,tr=4/3,ir=iw/ih,sx,sy,sw,sh;
         if(ir>tr){sh=ih;sw=ih*tr;sy=0;sx=(iw-sw)/2}else{sw=iw;sh=iw/tr;sx=0;sy=(ih-sh)/2}
-        ctx.fillStyle='#fce4ec';ctx.fillRect(0,0,tw,th);
-        ctx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
-        resolve(canvas.toDataURL('image/jpeg',.88));
+        ctx.fillStyle='#0d0018';ctx.fillRect(0,0,tw,th);ctx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
+        resolve(c.toDataURL('image/jpeg',.88));
       };
       img.onerror=reject;img.src=e.target.result;
     };
@@ -673,26 +476,20 @@ function loadImageFile(file){
 async function handleFiles(files){
   var imgs=Array.from(files).filter(function(f){return f.type.startsWith('image/')});
   if(imgs.length===0){showToast('未检测到图片文件');return}
-  showToast('正在加载 '+imgs.length+' 张照片...');
-
+  showToast('loading '+imgs.length+' photos...');
   var con=8,urls=[];
   for(var i=0;i<imgs.length;i+=con){
     var batch=imgs.slice(i,i+con);
-    var results=await Promise.all(batch.map(function(f){return loadImageFile(f).catch(function(){return null})}));
-    for(var j=0;j<results.length;j++){if(results[j])urls.push(results[j])}
+    var r=await Promise.all(batch.map(function(f){return loadImageFile(f).catch(function(){return null})}));
+    for(var j=0;j<r.length;j++){if(r[j])urls.push(r[j])}
   }
-
-  cards.forEach(function(card,i){
-    if(urls.length===0)return;
-    card.img.src=urls[i%urls.length];
-  });
-  showToast('已加载 '+urls.length+' 张照片 ✨');
+  cards.forEach(function(c,i){if(urls.length>0)c.img.src=urls[i%urls.length]});
+  showToast('done '+urls.length+' photos');
 }
 
 btnPick.addEventListener('click',function(){fileInput.click()});
 fileInput.addEventListener('change',function(){if(fileInput.files.length>0)handleFiles(fileInput.files)});
 
-// 拖拽文件夹
 var dragCnt=0;
 document.addEventListener('dragenter',function(e){e.preventDefault();dragCnt++});
 document.addEventListener('dragleave',function(e){e.preventDefault();dragCnt--});
@@ -703,20 +500,17 @@ document.addEventListener('drop',async function(e){
   var files=[];
   function trav(entry){return new Promise(function(rs){
     if(entry.isFile)entry.file(function(f){files.push(f);rs()});
-    else if(entry.isDirectory){var r=entry.createReader();r.readEntries(async function(es){for(var k=0;k<es.length;k++)await trav(es[k]);rs()})}
+    else if(entry.isDirectory){var rd=entry.createReader();rd.readEntries(async function(es){for(var k=0;k<es.length;k++)await trav(es[k]);rs()})}
     else rs();
   })}
   for(var i=0;i<items.length;i++){var en=items[i].webkitGetAsEntry?items[i].webkitGetAsEntry():null;if(en)await trav(en);else if(items[i].kind==='file')files.push(items[i].getAsFile())}
   if(files.length>0)await handleFiles(files);
 });
 
-// ═══════════════════════════════════
-//  启动
-// ═══════════════════════════════════
-updateBoardTransform();
-console.log('💕 520 照片墙已就绪');
-console.log('  拖拽平移 | 滚轮缩放 | 双击重置');
-console.log('  1/2/3/4 切换排列模式 | Esc 关闭全屏');
+updateBoard();
+console.log('520 · 星辰回忆 ready');
+console.log('  drag=pan | scroll=zoom | dblclick=reset');
+console.log('  1/2/3/4=switch mode | Esc=close');
 })();
 </script>
 </body>
