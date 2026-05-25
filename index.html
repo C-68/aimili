@@ -3,128 +3,197 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>520 · 我们的星辰</title>
+<title>520 · 我们的照片墙</title>
 <style>
-  /* ========== 全局重置 ========== */
+  /* ═══════════ 全局 ═══════════ */
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
   body{
-    overflow:hidden;background:#050010;
-    font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;
+    overflow:hidden;font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif;
     -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
-  }
-  canvas{display:block;position:fixed;top:0;left:0;z-index:1}
-
-  /* ========== 加载提示 ========== */
-  #loading{
-    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99;
-    color:#ffb3d9;font-size:18px;letter-spacing:.1em;pointer-events:none;transition:opacity .5s;
+    /* 暖粉色渐变背景 */
+    background:linear-gradient(155deg,#fce4ec 0%,#f8d0dc 18%,#fce4ec 36%,#fef0f4 55%,#fce4ec 75%,#f0d4e0 100%);
+    background-attachment:fixed;min-height:100vh;
   }
 
-  /* ========== UI 层级 ========== */
+  /* ═══════════ 粒子画布 ═══════════ */
+  #particles-canvas{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    z-index:1;pointer-events:none;
+  }
+
+  /* ═══════════ 照片面板（可拖拽缩放） ═══════════ */
+  #board-viewport{
+    position:fixed;inset:0;z-index:2;
+    overflow:hidden;cursor:grab;
+  }
+  #board-viewport:active{cursor:grabbing}
+  #board-viewport.grabbing{cursor:grabbing}
+  #board{
+    position:absolute;top:50%;left:50%;
+    transform-origin:0 0;
+    width:0;height:0;
+  }
+
+  /* ═══════════ 照片卡片（拍立得风格） ═══════════ */
+  .photo-card{
+    position:absolute;
+    background:#fff;
+    padding:9px 9px 32px 9px;
+    border-radius:3px;
+    box-shadow:2px 4px 16px rgba(0,0,0,.10),1px 2px 6px rgba(0,0,0,.06);
+    cursor:pointer;transition:box-shadow .35s,z-index .35s;
+    will-change:transform;
+  }
+  .photo-card:hover{
+    box-shadow:4px 8px 28px rgba(255,64,128,.22),2px 4px 14px rgba(255,107,157,.12);
+    z-index:50!important;
+  }
+  .photo-card.enlarged{
+    z-index:200!important;
+    box-shadow:0 16px 60px rgba(255,64,128,.25),0 4px 20px rgba(0,0,0,.12);
+  }
+  .photo-card .card-img{
+    display:block;width:160px;height:120px;
+    object-fit:cover;border-radius:1px;
+    background:linear-gradient(135deg,#fce4ec,#f8d0dc);
+    pointer-events:none;
+  }
+  .photo-card .card-cap{
+    font-size:10px;color:#c09098;text-align:center;
+    margin-top:7px;letter-spacing:.06em;white-space:nowrap;
+    pointer-events:none;
+  }
+
+  /* ═══════════ UI 层 ═══════════ */
   .ui-layer{
     position:fixed;inset:0;z-index:10;pointer-events:none;
     display:flex;flex-direction:column;justify-content:space-between;
-    padding:28px 20px 24px;transition:opacity .6s;
+    padding:24px 16px 20px;transition:opacity .5s;
   }
-  .ui-layer.dim{opacity:.2}
   .ui-layer>*{pointer-events:auto}
 
-  /* ---- 顶部标题 ---- */
   .header{text-align:center}
   .title-main{
-    font-size:clamp(42px,7vw,68px);font-weight:900;
-    background:linear-gradient(135deg,#ff6b9d,#ff2d78,#e040ff);
+    font-size:clamp(38px,6vw,58px);font-weight:900;
+    background:linear-gradient(135deg,#e91e63,#f06292,#ec407a);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    filter:drop-shadow(0 0 30px rgba(255,64,128,.5));letter-spacing:.1em;line-height:1.1;
+    filter:drop-shadow(0 0 18px rgba(233,30,99,.25));letter-spacing:.1em;
   }
   .title-sub{
-    font-size:clamp(12px,2vw,16px);color:rgba(255,180,210,.82);letter-spacing:.2em;margin-top:2px;
+    font-size:clamp(11px,1.8vw,14px);color:rgba(180,100,120,.75);letter-spacing:.18em;margin-top:2px;
   }
 
-  /* ---- 底部控制栏 ---- */
-  .footer{display:flex;flex-direction:column;align-items:center;gap:12px}
-  .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .footer{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
   .btn{
-    display:flex;align-items:center;gap:6px;
-    padding:10px 22px;border:1.5px solid rgba(255,107,157,.45);border-radius:50px;
-    background:rgba(255,64,128,.10);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    color:#ffb3d9;font-size:14px;cursor:pointer;transition:all .35s;letter-spacing:.05em;white-space:nowrap;
+    display:flex;align-items:center;gap:5px;
+    padding:9px 18px;border:1.5px solid rgba(233,30,99,.28);border-radius:50px;
+    background:rgba(255,255,255,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    color:#c04860;font-size:13px;cursor:pointer;transition:all .3s;letter-spacing:.04em;white-space:nowrap;
   }
-  .btn:hover{background:rgba(255,64,128,.22);border-color:rgba(255,107,157,.75);color:#fff;box-shadow:0 0 28px rgba(255,64,128,.3)}
-  .btn svg{width:18px;height:18px;opacity:.85}
-  .btn.active{border-color:#ff6b9d;background:rgba(255,64,128,.25);color:#fff}
+  .btn:hover{background:rgba(255,255,255,.82);border-color:rgba(233,30,99,.5);color:#c03050;box-shadow:0 0 20px rgba(233,30,99,.12)}
+  .btn.active{border-color:#e91e63;background:rgba(255,240,245,.9);color:#b01040;font-weight:600}
+  .btn svg{width:16px;height:16px;opacity:.75}
 
-  .hint{font-size:12px;color:rgba(255,180,210,.4);letter-spacing:.08em}
+  .hint{font-size:11px;color:rgba(180,100,120,.42);letter-spacing:.06em}
 
-  /* ========== 照片放大浮层 ========== */
+  /* ═══════════ 全屏放大浮层 ═══════════ */
   #enlarge-overlay{
-    position:fixed;inset:0;z-index:50;
-    background:rgba(5,0,16,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    position:fixed;inset:0;z-index:80;
+    background:rgba(30,5,10,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     display:flex;align-items:center;justify-content:center;
-    opacity:0;pointer-events:none;transition:opacity .45s;
+    opacity:0;pointer-events:none;transition:opacity .4s;
   }
   #enlarge-overlay.show{opacity:1;pointer-events:auto}
-  #enlarge-img{
-    max-width:82vw;max-height:78vh;border-radius:16px;
-    box-shadow:0 0 80px rgba(255,64,128,.35),0 0 160px rgba(255,107,157,.18);
-    transform:scale(.85);transition:transform .45s;
+  #enlarge-overlay img{
+    max-width:84vw;max-height:80vh;border-radius:10px;
+    box-shadow:0 0 80px rgba(255,64,128,.3),0 0 160px rgba(255,107,157,.15);
+    transform:scale(.88);transition:transform .4s;
   }
-  #enlarge-overlay.show #enlarge-img{transform:scale(1)}
+  #enlarge-overlay.show img{transform:scale(1)}
   #enlarge-close{
-    position:absolute;top:24px;right:28px;
-    width:44px;height:44px;border-radius:50%;
-    border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);
-    color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    transition:all .3s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    position:absolute;top:20px;right:24px;
+    width:42px;height:42px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.05);
+    color:#fff;font-size:21px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:all .3s;
   }
-  #enlarge-close:hover{background:rgba(255,64,128,.3);border-color:#ff6b9d;box-shadow:0 0 24px rgba(255,64,128,.4)}
+  #enlarge-close:hover{background:rgba(255,64,128,.28);border-color:#f06292}
   #enlarge-caption{
-    position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
-    text-align:center;color:#fff;
+    position:absolute;bottom:36px;left:50%;transform:translateX(-50%);text-align:center;color:#fff;
   }
-  #enlarge-caption .cap-t{font-size:22px;font-weight:700;letter-spacing:.1em;text-shadow:0 0 30px rgba(255,64,128,.7)}
-  #enlarge-caption .cap-s{font-size:14px;color:rgba(255,180,210,.8);margin-top:4px;letter-spacing:.15em}
+  #enlarge-caption .cap-t{font-size:20px;font-weight:700;letter-spacing:.1em;text-shadow:0 0 24px rgba(255,64,128,.6)}
+  #enlarge-caption .cap-s{font-size:13px;color:rgba(255,200,210,.78);margin-top:3px;letter-spacing:.12em}
 
-  /* ========== Toast ========== */
+  /* ═══════════ Toast ═══════════ */
   #toast{
-    position:fixed;bottom:130px;left:50%;transform:translateX(-50%);z-index:60;
-    pointer-events:none;background:rgba(255,64,128,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,107,157,.35);color:#ffb3d9;padding:9px 22px;border-radius:50px;
-    font-size:13px;letter-spacing:.05em;opacity:0;transition:opacity .4s;
+    position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:90;
+    pointer-events:none;background:rgba(255,255,255,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(233,30,99,.22);color:#b04050;padding:8px 20px;border-radius:50px;
+    font-size:12px;letter-spacing:.05em;opacity:0;transition:opacity .35s;
   }
   #toast.show{opacity:1}
+
+  /* ═══════════ 响应式 ═══════════ */
+  @media(max-width:600px){
+    .photo-card{padding:6px 6px 22px 6px}
+    .photo-card .card-img{width:120px;height:90px}
+    .photo-card .card-cap{font-size:9px;margin-top:5px}
+    .btn{padding:7px 13px;font-size:11px;gap:3px}
+    .btn svg{width:14px;height:14px}
+  }
 </style>
 </head>
 <body>
 
-<div id="loading">✨ 正在编织浪漫星辰...</div>
+<!-- 粒子画布 -->
+<canvas id="particles-canvas"></canvas>
 
-<!-- UI 层 -->
+<!-- 照片面板 -->
+<div id="board-viewport">
+  <div id="board"></div>
+</div>
+
+<!-- UI -->
 <div class="ui-layer" id="uiLayer">
   <div class="header">
     <div class="title-main">520</div>
-    <div class="title-sub">我 们 的 星 辰 大 海</div>
+    <div class="title-sub">我 们 的 回 忆</div>
   </div>
   <div class="footer">
+    <div class="btn-row" id="modeBtns">
+      <button class="btn active" data-mode="scatter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        散落拼贴
+      </button>
+      <button class="btn" data-mode="grid">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="13" y="3" width="7" height="7"/><rect x="3" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></svg>
+        整齐行列
+      </button>
+      <button class="btn" data-mode="heart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        心形
+      </button>
+      <button class="btn" data-mode="circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+        圆形环绕
+      </button>
+    </div>
     <div class="btn-row">
-      <button class="btn active" id="btnOrbit">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="4"/><ellipse cx="12" cy="12" rx="4" ry="9"/><circle cx="12" cy="12" r="2"/></svg>
-        轨道模式
-      </button>
-      <button class="btn" id="btnScatter">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="18" cy="4" r="1.5"/><circle cx="10" cy="18" r="1.5"/><circle cx="18" cy="14" r="1.5"/><circle cx="4" cy="12" r="1.5"/></svg>
-        星辰模式
-      </button>
       <button class="btn" id="btnPick">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         选择照片
       </button>
+      <button class="btn" id="btnReset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        重置视角
+      </button>
     </div>
-    <span class="hint">拖拽旋转 · 滚轮缩放 · 悬停看大图 · 点击全屏</span>
+    <span class="hint">拖拽平移 · 滚轮缩放 · 悬停看细节 · 点击全屏</span>
   </div>
 </div>
 
-<!-- 照片放大浮层 -->
+<!-- 全屏浮层 -->
 <div id="enlarge-overlay">
   <button id="enlarge-close">✕</button>
   <img id="enlarge-img" src="" alt="">
@@ -137,612 +206,446 @@
 <div id="toast"></div>
 <input type="file" id="fileInput" webkitdirectory multiple accept="image/*" style="display:none">
 
-<!-- ================ CDN ================ -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<!-- ============ CDN ============ -->
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 
 <script>
 (function(){
 'use strict';
 
-// ╔══════════════════════════════════════════════════════════╗
-// ║  📸  照片配置 —— 替换下面的路径和文案即可             ║
-// ╚══════════════════════════════════════════════════════════╝
+// ╔══════════════════════════════════════════════════╗
+// ║  📸 照片配置 — 替换路径和文案即可              ║
+// ╚══════════════════════════════════════════════════╝
 var PHOTO_LIST = [
-  { title:'初见那天',       sub:'First Sight' },
-  { title:'第一次约会',     sub:'First Date' },
-  { title:'一起看日落',     sub:'Golden Hour' },
-  { title:'你的笑容',       sub:'Your Smile' },
-  { title:'海边的我们',     sub:'By the Sea' },
-  { title:'星光下的约定',   sub:'Under Stars' },
-  { title:'甜蜜日常',       sub:'Sweet Days' },
-  { title:'我们的歌',       sub:'Our Song' },
-  { title:'温暖拥抱',       sub:'Warm Hug' },
-  { title:'未来可期',       sub:'Forever' },
-  { title:'一起旅行',       sub:'Travel' },
-  { title:'生日惊喜',       sub:'Birthday' },
-  { title:'心动瞬间',       sub:'Heartbeat' },
-  { title:'专属回忆',       sub:'Memory' },
-  { title:'只属于我们',     sub:'Only Us' },
-  { title:'默契',           sub:'Chemistry' },
-  { title:'小确幸',         sub:'Little Joy' },
-  { title:'相伴',           sub:'Together' },
-  { title:'520',            sub:'I Love You' },
-  { title:'永远',           sub:'Eternity' },
+  { title:'初见那天',   sub:'First Sight' },
+  { title:'第一次约会', sub:'First Date' },
+  { title:'一起看日落', sub:'Golden Hour' },
+  { title:'你的笑容',   sub:'Your Smile' },
+  { title:'海边的我们', sub:'By the Sea' },
+  { title:'星光下约定', sub:'Under Stars' },
+  { title:'甜蜜日常',   sub:'Sweet Days' },
+  { title:'我们的歌',   sub:'Our Song' },
+  { title:'温暖拥抱',   sub:'Warm Hug' },
+  { title:'未来可期',   sub:'Forever' },
+  { title:'一起旅行',   sub:'Travel' },
+  { title:'生日惊喜',   sub:'Birthday' },
+  { title:'心动瞬间',   sub:'Heartbeat' },
+  { title:'专属回忆',   sub:'Memory' },
+  { title:'只属我们',   sub:'Only Us' },
+  { title:'默契十足',   sub:'Chemistry' },
+  { title:'小确幸',     sub:'Little Joy' },
+  { title:'有你相伴',   sub:'Together' },
+  { title:'520 ❤',     sub:'I Love You' },
+  { title:'永远',       sub:'Eternity' },
 ];
+var PHOTO_COUNT = PHOTO_LIST.length; // 20
 
-// ═══════════════════════════════════════
-//  依赖检测
-// ═══════════════════════════════════════
-if(typeof THREE==='undefined'){document.getElementById('loading').textContent='❌ Three.js 加载失败，请检查网络后刷新';throw new Error('THREE not loaded')}
-var HAS_GSAP=typeof gsap!=='undefined';
-if(!HAS_GSAP)console.warn('GSAP 未加载，使用降级动画');
+// ═══════════════════════════════════
+//  DOM
+// ═══════════════════════════════════
+var board         = document.getElementById('board');
+var viewport      = document.getElementById('board-viewport');
+var enlargeOver   = document.getElementById('enlarge-overlay');
+var enlargeImg    = document.getElementById('enlarge-img');
+var enlargeClose  = document.getElementById('enlarge-close');
+var capT          = document.getElementById('capT');
+var capS          = document.getElementById('capS');
+var toastEl       = document.getElementById('toast');
+var btnPick       = document.getElementById('btnPick');
+var btnReset      = document.getElementById('btnReset');
+var fileInput     = document.getElementById('fileInput');
+var particlesCanvas = document.getElementById('particles-canvas');
 
-// ═══════════════════════════════════════
-//  DOM 引用
-// ═══════════════════════════════════════
-var loadingEl    = document.getElementById('loading');
-var uiLayer      = document.getElementById('uiLayer');
-var btnOrbit     = document.getElementById('btnOrbit');
-var btnScatter   = document.getElementById('btnScatter');
-var btnPick      = document.getElementById('btnPick');
-var fileInput    = document.getElementById('fileInput');
-var enlargeOver  = document.getElementById('enlarge-overlay');
-var enlargeImg   = document.getElementById('enlarge-img');
-var enlargeClose = document.getElementById('enlarge-close');
-var capT         = document.getElementById('capT');
-var capS         = document.getElementById('capS');
-var toastEl      = document.getElementById('toast');
+var HAS_GSAP = typeof gsap !== 'undefined';
 
-// ═══════════════════════════════════════
-//  Three.js 初始化
-// ═══════════════════════════════════════
-var renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
-renderer.domElement.style.cssText='position:fixed;top:0;left:0;z-index:1';
-document.body.insertBefore(renderer.domElement,document.body.firstChild);
+// ═══════════════════════════════════
+//  粒子系统（独立 canvas）
+// ═══════════════════════════════════
+var pCtx = particlesCanvas.getContext('2d');
+var particles = [];
 
-var scene = new THREE.Scene();
-scene.fog=new THREE.FogExp2('#050010',.00005);
+function resizeParticlesCanvas(){
+  particlesCanvas.width = window.innerWidth;
+  particlesCanvas.height = window.innerHeight;
+}
+resizeParticlesCanvas();
+window.addEventListener('resize',resizeParticlesCanvas);
 
-var camera=new THREE.PerspectiveCamera(52,window.innerWidth/window.innerHeight,.5,65);
-camera.position.set(4.5,3,14);
-camera.lookAt(0,.2,0);
+// 创建粒子：爱心 + 光点
+for(var i=0;i<80;i++){
+  particles.push({
+    x:Math.random()*particlesCanvas.width,
+    y:Math.random()*particlesCanvas.height,
+    size:.6+Math.random()*3.5,
+    speedX:(Math.random()-.5)*.25,
+    speedY:-.3-Math.random()*.6,
+    opacity:.15+Math.random()*.45,
+    hue:Math.random()<.6?340+Math.random()*30:25+Math.random()*15, // 粉/金色
+    type:Math.random()<.25?'heart':'dot',
+    life:Math.random(),
+    maxLife:.6+Math.random()*.4
+  });
+}
 
-// ═══════════════════════════════════════
-//  手动轨道控制器（鼠标/触摸/滚轮）
-// ═══════════════════════════════════════
-var orbitTarget = new THREE.Vector3(0,.2,0);
-var spherical   = new THREE.Spherical();
-var sphDelta    = new THREE.Spherical();
-var panOffset   = new THREE.Vector3();
-var isDown=false, lastMX=0,lastMY=0;
-var autoRotate=true, autoSpeed=.35;
-var damp=.09, minD=4,maxD=28,maxPhi=Math.PI*.78;
-var rotSens=.0045, zoomSens=.08;
+function drawHeart(ctx,x,y,s){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.beginPath();
+  var d=.05;
+  for(var t=0;t<Math.PI*2;t+=d){
+    var px=16*Math.pow(Math.sin(t),3);
+    var py=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+    t===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.closePath();ctx.fill();ctx.restore();
+}
+
+function animateParticles(){
+  pCtx.clearRect(0,0,particlesCanvas.width,particlesCanvas.height);
+
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.life+=.003;if(p.life>p.maxLife){p.life=0;p.x=Math.random()*particlesCanvas.width;p.y=particlesCanvas.height+10}
+
+    p.x+=p.speedX;p.y+=p.speedY;
+    if(p.y<-20)p.y=particlesCanvas.height+10;
+    if(p.x<-20)p.x=particlesCanvas.width+20;
+    if(p.x>particlesCanvas.width+20)p.x=-20;
+
+    var alpha=p.opacity*(1-Math.abs(p.life-p.maxLife/2)/(p.maxLife/2));
+    pCtx.fillStyle='hsla('+p.hue+',70%,65%,'+alpha+')';
+
+    if(p.type==='heart'){
+      drawHeart(pCtx,p.x,p.y,p.size*.06);
+    }else{
+      pCtx.beginPath();pCtx.arc(p.x,p.y,p.size,0,Math.PI*2);pCtx.fill();
+    }
+  }
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ═══════════════════════════════════
+//  创建照片卡片
+// ═══════════════════════════════════
+var cards = []; // { el, img, capEl, data, index }
+
+PHOTO_LIST.forEach(function(data,i){
+  var el = document.createElement('div');
+  el.className = 'photo-card';
+  el.style.zIndex = i;
+
+  var img = document.createElement('img');
+  img.className = 'card-img';
+  img.src = genPlaceholderURL(i);
+  img.draggable = false;
+
+  var cap = document.createElement('div');
+  cap.className = 'card-cap';
+  cap.textContent = data.title;
+
+  el.appendChild(img);
+  el.appendChild(cap);
+  board.appendChild(el);
+
+  el.addEventListener('click',function(e){
+    if(dragMoved)return;
+    enlargeCard(i);
+  });
+
+  cards.push({el:el,img:img,capEl:cap,data:data,index:i});
+});
+
+// 占位图生成
+function genPlaceholderURL(idx){
+  var sz=200,c=document.createElement('canvas');
+  c.width=sz;c.height=Math.round(sz*.75);
+  var ctx=c.getContext('2d');
+  var hue=(340+idx*17)%360;
+  var g=ctx.createLinearGradient(0,0,sz,sz*.75);
+  g.addColorStop(0,'hsl('+hue+',55%,72%)');
+  g.addColorStop(.5,'hsl('+((hue+20)%360)+',50%,64%)');
+  g.addColorStop(1,'hsl('+((hue+45)%360)+',45%,56%)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,sz,sz*.75);
+  ctx.fillStyle='rgba(255,255,255,.28)';ctx.font='48px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('❤',sz/2,sz*.375);
+  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='16px sans-serif';
+  ctx.fillText(String(idx+1),sz/2,sz*.56);
+  return c.toDataURL('image/jpeg',.85);
+}
+
+// ═══════════════════════════════════
+//  排列模式定义（每张照片的 {x,y,rotation}）
+// ═══════════════════════════════════
+
+// --- 辅助：心形曲线 ---
+function heartPos(t){
+  var s=7.5; // scale
+  var x=16*Math.pow(Math.sin(t),3);
+  var y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+  return {x:x*s, y:y*s};
+}
+
+var layouts = {
+  // 散落拼贴
+  scatter: (function(){
+    // 使用种子随机使每次生成一致
+    var rng=seedRandom(42);
+    var pts=[];
+    for(var i=0;i<PHOTO_COUNT;i++){
+      pts.push({
+        x:(rng()-0.5)*1300,
+        y:(rng()-0.5)*900,
+        rotation:(rng()-0.5)*26
+      });
+    }
+    return pts;
+  })(),
+
+  // 整齐行列 4×5
+  grid: (function(){
+    var pts=[],cols=5,rows=4,gapX=200,gapY=200;
+    var startX=-(cols-1)*gapX/2,startY=-(rows-1)*gapY/2;
+    for(var i=0;i<PHOTO_COUNT;i++){
+      var col=i%cols,row=Math.floor(i/cols);
+      pts.push({x:startX+col*gapX,y:startY+row*gapY,rotation:0});
+    }
+    return pts;
+  })(),
+
+  // 心形排列
+  heart: (function(){
+    var pts=[];
+    for(var i=0;i<PHOTO_COUNT;i++){
+      var t=(i/PHOTO_COUNT)*Math.PI*2;
+      var p=heartPos(t);
+      // 加一点随机扰动
+      p.x+=(Math.random()-.5)*40;
+      p.y+=(Math.random()-.5)*40;
+      // 计算心形切线方向作为旋转
+      var t2=t+.01;var p2=heartPos(t2);
+      var angle=Math.atan2(p2.y-p.y,p2.x-p.x)*180/Math.PI+90;
+      pts.push({x:p.x,y:p.y-30,rotation:angle});
+    }
+    return pts;
+  })(),
+
+  // 圆形环绕（2层同心圆）
+  circle: (function(){
+    var pts=[];
+    var outerN=12,innerN=8,outerR=380,innerR=220;
+    for(var i=0;i<outerN;i++){
+      var a=(i/outerN)*Math.PI*2-Math.PI/2;
+      pts.push({x:Math.cos(a)*outerR,y:Math.sin(a)*outerR,rotation:a*180/Math.PI});
+    }
+    for(var i=0;i<innerN;i++){
+      var a=(i/innerN)*Math.PI*2-Math.PI/2+Math.PI/innerN;
+      pts.push({x:Math.cos(a)*innerR,y:Math.sin(a)*innerR,rotation:a*180/Math.PI});
+    }
+    return pts;
+  })()
+};
+
+// 伪随机数生成器
+function seedRandom(s){
+  return function(){
+    s=(s*16807+0)%2147483647;
+    return (s-1)/2147483646;
+  };
+}
+
+// ═══════════════════════════════════
+//  将卡片应用布局（GSAP 动画）
+// ═══════════════════════════════════
+var currentMode='scatter';
+var isAnimating=false;
+
+function applyLayout(mode,animate){
+  var targets=layouts[mode];
+  if(!targets)return;
+  currentMode=mode;
+
+  cards.forEach(function(card,i){
+    var tgt=targets[i]||targets[i%targets.length];
+    if(animate&&HAS_GSAP){
+      gsap.to(card.el,{x:tgt.x,y:tgt.y,rotation:tgt.rotation,duration:1.1,delay:i*.025,ease:'power2.inOut'});
+    }else{
+      card.el.style.transform='translate('+tgt.x+'px,'+tgt.y+'px) rotate('+tgt.rotation+'deg)';
+    }
+  });
+}
+
+// ═══════════════════════════════════
+//  模式切换按钮
+// ═══════════════════════════════════
+var modeBtns=document.querySelectorAll('#modeBtns .btn');
+modeBtns.forEach(function(btn){
+  btn.addEventListener('click',function(){
+    if(isAnimating)return;
+    var mode=btn.dataset.mode;
+    if(mode===currentMode)return;
+    modeBtns.forEach(function(b){b.classList.remove('active')});
+    btn.classList.add('active');
+    isAnimating=true;
+    applyLayout(mode,true);
+    setTimeout(function(){isAnimating=false},1300);
+    var names={scatter:'散落拼贴',grid:'整齐行列',heart:'心形排列',circle:'圆形环绕'};
+    showToast('切换到 '+names[mode]+' ✨');
+  });
+});
+
+// 初始布局
+applyLayout('scatter',false);
+
+// ═══════════════════════════════════
+//  面板平移 + 缩放
+// ═══════════════════════════════════
+var panX=0,panY=0,zoom=1;
+var isPanning=false,startPX=0,startPY=0,startPanX=0,startPanY=0;
 var dragMoved=false;
+var MIN_ZOOM=.35,MAX_ZOOM=3.5;
 
-spherical.setFromVector3(camera.position.clone().sub(orbitTarget));
-spherical.theta+=.02;
-
-function clampSpherical(){
-  spherical.phi=Math.max(.05,Math.min(maxPhi,spherical.phi));
-  spherical.radius=Math.max(minD,Math.min(maxD,spherical.radius));
-}
-function applyCam(){
-  clampSpherical();
-  var p=new THREE.Vector3().setFromSpherical(spherical).add(orbitTarget).add(panOffset);
-  camera.position.copy(p);
-  camera.lookAt(orbitTarget.clone().add(panOffset));
-}
-function updateControls(){
-  if(autoRotate&&!isDown)sphDelta.theta-=autoSpeed*.007;
-  spherical.theta+=sphDelta.theta*damp;
-  spherical.phi  +=sphDelta.phi  *damp;
-  spherical.radius+=sphDelta.radius*damp;
-  sphDelta.theta*=(1-damp);sphDelta.phi*=(1-damp);sphDelta.radius*=(1-damp);
-  applyCam();
+function updateBoardTransform(){
+  board.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
 }
 
 // 鼠标事件
-renderer.domElement.addEventListener('mousedown',function(e){isDown=true;dragMoved=false;lastMX=e.clientX;lastMY=e.clientY});
-window.addEventListener('mousemove',function(e){
-  if(!isDown)return;
-  var dx=e.clientX-lastMX,dy=e.clientY-lastMY;
-  if(Math.abs(dx)>1||Math.abs(dy)>1)dragMoved=true;
-  sphDelta.theta-=dx*rotSens;sphDelta.phi-=dy*rotSens;
-  lastMX=e.clientX;lastMY=e.clientY;
+viewport.addEventListener('mousedown',function(e){
+  isPanning=true;dragMoved=false;
+  startPX=e.clientX;startPY=e.clientY;
+  startPanX=panX;startPanY=panY;
+  viewport.classList.add('grabbing');
 });
-window.addEventListener('mouseup',function(){isDown=false});
-renderer.domElement.addEventListener('wheel',function(e){e.preventDefault();sphDelta.radius+=e.deltaY*zoomSens*.01},{passive:false});
-renderer.domElement.addEventListener('contextmenu',function(e){e.preventDefault()});
+window.addEventListener('mousemove',function(e){
+  if(!isPanning)return;
+  var dx=e.clientX-startPX,dy=e.clientY-startPY;
+  if(Math.abs(dx)>2||Math.abs(dy)>2)dragMoved=true;
+  panX=startPanX+dx;panY=startPanY+dy;
+  updateBoardTransform();
+});
+window.addEventListener('mouseup',function(){
+  isPanning=false;viewport.classList.remove('grabbing');
+});
+viewport.addEventListener('wheel',function(e){
+  e.preventDefault();
+  var rect=viewport.getBoundingClientRect();
+  var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  var oldZoom=zoom;
+  zoom+=e.deltaY*-.001;
+  zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,zoom));
+  // 以鼠标位置为中心缩放
+  panX=mx-(mx-panX)*(zoom/oldZoom);
+  panY=my-(my-panY)*(zoom/oldZoom);
+  updateBoardTransform();
+},{passive:false});
 
 // 触摸事件
-var lastTouches=null,lastPinch=0;
-renderer.domElement.addEventListener('touchstart',function(e){
-  if(e.touches.length===1){isDown=true;dragMoved=false;lastMX=e.touches[0].clientX;lastMY=e.touches[0].clientY}
-  if(e.touches.length===2){lastTouches=[e.touches[0],e.touches[1]];lastPinch=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY)}
+var lastTouches=null,lastPinch=0,pinchMid={x:0,y:0};
+viewport.addEventListener('touchstart',function(e){
+  if(e.touches.length===1){
+    isPanning=true;dragMoved=false;
+    startPX=e.touches[0].clientX;startPY=e.touches[0].clientY;
+    startPanX=panX;startPanY=panY;
+  }
+  if(e.touches.length===2){
+    lastTouches=[e.touches[0],e.touches[1]];
+    lastPinch=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY);
+    pinchMid.x=(lastTouches[0].clientX+lastTouches[1].clientX)/2;
+    pinchMid.y=(lastTouches[0].clientY+lastTouches[1].clientY)/2;
+  }
 },{passive:false});
-renderer.domElement.addEventListener('touchmove',function(e){
-  if(e.touches.length===1&&isDown){var dx=e.touches[0].clientX-lastMX,dy=e.touches[0].clientY-lastMY;if(Math.abs(dx)>3||Math.abs(dy)>3)dragMoved=true;sphDelta.theta-=dx*rotSens;sphDelta.phi-=dy*rotSens;lastMX=e.touches[0].clientX;lastMY=e.touches[0].clientY}
-  if(e.touches.length===2){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);sphDelta.radius-=(d-lastPinch)*zoomSens*.005;lastPinch=d}
+viewport.addEventListener('touchmove',function(e){
+  if(e.touches.length===1&&isPanning){
+    var dx=e.touches[0].clientX-startPX,dy=e.touches[0].clientY-startPY;
+    if(Math.abs(dx)>3||Math.abs(dy)>3)dragMoved=true;
+    panX=startPanX+dx;panY=startPanY+dy;
+    updateBoardTransform();
+  }
+  if(e.touches.length===2){
+    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    var midX=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    var midY=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    var oldZoom=zoom;
+    zoom*=(d/lastPinch);
+    zoom=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,zoom));
+    panX=midX-(midX-panX)*(zoom/oldZoom);
+    panY=midY-(midY-panY)*(zoom/oldZoom);
+    lastPinch=d;
+    updateBoardTransform();
+  }
 },{passive:false});
-renderer.domElement.addEventListener('touchend',function(){isDown=false});
+viewport.addEventListener('touchend',function(){isPanning=false});
 
-// ═══════════════════════════════════════
-//  灯光
-// ═══════════════════════════════════════
-scene.add(new THREE.AmbientLight('#2a0a30',.85));
-var ptCenter=new THREE.PointLight('#ff4080',65,16,1.8);ptCenter.position.set(0,.1,0);scene.add(ptCenter);
-var ptFill=new THREE.PointLight('#9b6dff',18,22,2.2);ptFill.position.set(0,1.5,0);scene.add(ptFill);
-
-// ═══════════════════════════════════════
-//  星河粒子背景（2000 颗星）
-// ═══════════════════════════════════════
-var starfieldPts;
-(function(){
-  var N=2000,pos=new Float32Array(N*3),col=new Float32Array(N*3);
-  for(var i=0;i<N;i++){
-    var th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),r=18+Math.random()*32;
-    pos[i*3]=r*Math.sin(ph)*Math.cos(th);pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);pos[i*3+2]=r*Math.cos(ph);
-    var t=Math.random();
-    if(t<.4){col[i*3]=1;col[i*3+1]=1;col[i*3+2]=1}            // 白
-    else if(t<.65){col[i*3]=1;col[i*3+1]=.55;col[i*3+2]=.7}    // 粉
-    else if(t<.85){col[i*3]=1;col[i*3+1]=.78;col[i*3+2]=.48}   // 金
-    else{col[i*3]=.58;col[i*3+1]=.45;col[i*3+2]=1}             // 蓝紫
-  }
-  var geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
-  var mat=new THREE.PointsMaterial({size:.07,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.72});
-  starfieldPts=new THREE.Points(geo,mat);scene.add(starfieldPts);
-})();
-
-// ═══════════════════════════════════════
-//  心形粒子簇（3 个隐约的心形）
-// ═══════════════════════════════════════
-(function(){
-  var clusters=[
-    {pos:[4,1.5,-6],scale:.7,count:250},
-    {pos:[-4.5,-1,-7],scale:.9,count:300},
-    {pos:[1.5,-3,-5],scale:.55,count:200},
-  ];
-  clusters.forEach(function(cl){
-    var positions=new Float32Array(cl.count*3),colors=new Float32Array(cl.count*3);
-    for(var i=0;i<cl.count;i++){
-      var x,y,xx,yy;
-      do{x=(Math.random()-.5)*2.3;y=Math.random()*1.7-.55;xx=x*1.1;yy=y*1.1}
-      while(Math.pow(xx*xx+yy*yy-1,3)-xx*xx*yy*yy*yy>0);
-      var dist=Math.sqrt(x*x+y*y),maxZ=.4*(1-Math.min(dist/1.3,1))*.7;
-      positions[i*3]=x*cl.scale+cl.pos[0];
-      positions[i*3+1]=y*cl.scale+cl.pos[1];
-      positions[i*3+2]=(Math.random()-.5)*2*maxZ+cl.pos[2];
-      var t=Math.random();
-      colors[i*3]=.85+t*.15;colors[i*3+1]=.1+t*.15;colors[i*3+2]=.25+t*.2;
-    }
-    var geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
-    geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
-    var mat=new THREE.PointsMaterial({size:.04,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.55});
-    scene.add(new THREE.Points(geo,mat));
-  });
-})();
-
-// ═══════════════════════════════════════
-//  漂浮粒子（400 颗）
-// ═══════════════════════════════════════
-var floatingPts,floatingInit;
-(function(){
-  var N=400,pos=new Float32Array(N*3);
-  for(var i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*22;pos[i*3+1]=(Math.random()-.5)*15;pos[i*3+2]=(Math.random()-.5)*18}
-  var geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  var mat=new THREE.PointsMaterial({size:.03,color:'#ff9dbc',blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5});
-  floatingPts=new THREE.Points(geo,mat);floatingInit=new Float32Array(pos);scene.add(floatingPts);
-})();
-
-// ═══════════════════════════════════════
-//  双螺旋轨道环（轨道模式可见）
-// ═══════════════════════════════════════
-var RING_CONFIG=[
-  {radius:8.8,normal:new THREE.Vector3(.42,.78,.46).normalize(),color:'#ff6b9d',speed:.22,photoCount:10},
-  {radius:7.2,normal:new THREE.Vector3(-.46,.74,-.48).normalize(),color:'#ff4080',speed:-.18,photoCount:10},
-];
-var ringGroups=[],ringVisibility=1;
-
-RING_CONFIG.forEach(function(cfg){
-  var grp=new THREE.Group();
-  grp.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),cfg.normal));
-
-  // 细光环
-  var tGeo=new THREE.TorusGeometry(cfg.radius,.022,32,220);
-  var tMat=new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false});
-  grp.add(new THREE.Mesh(tGeo,tMat));
-
-  // 发光晕
-  var gGeo=new THREE.TorusGeometry(cfg.radius,.15,16,220);
-  var gMat=new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:.08,blending:THREE.AdditiveBlending,depthWrite:false});
-  var gMesh=new THREE.Mesh(gGeo,gMat);gMesh.name='glow';grp.add(gMesh);
-
-  // 光点轨道
-  var dotN=180,dotPos=new Float32Array(dotN*3);
-  for(var i=0;i<dotN;i++){var a=(i/dotN)*Math.PI*2;dotPos[i*3]=Math.cos(a)*cfg.radius;dotPos[i*3+1]=0;dotPos[i*3+2]=Math.sin(a)*cfg.radius}
-  var dotGeo=new THREE.BufferGeometry();dotGeo.setAttribute('position',new THREE.BufferAttribute(dotPos,3));
-  var dotMat=new THREE.PointsMaterial({size:.055,color:cfg.color,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.65});
-  grp.add(new THREE.Points(dotGeo,dotMat));
-
-  cfg._slots=[];
-  for(var j=0;j<cfg.photoCount;j++)cfg._slots.push({angle:(j/cfg.photoCount)*Math.PI*2,data:PHOTO_LIST[ringGroups.length*10+j]||PHOTO_LIST[j]});
-
-  grp.userData={config:cfg};
-  scene.add(grp);ringGroups.push(grp);
-});
-
-// ═══════════════════════════════════════
-//  照片卡片创建（所有照片的 3D 表示）
-// ═══════════════════════════════════════
-var allCards=[]; // {group, photoMesh, glowMesh, frameMesh, ringIdx, slotIdx, data, worldPos, scatterTarget}
-
-function createPhotoCard(slotData,ringIdx,slotIdx){
-  var grp=new THREE.Group();
-
-  // 霓虹发光层（默认透明）
-  var gGeo=new THREE.PlaneGeometry(1.55,1.2);
-  var gMat=new THREE.MeshBasicMaterial({color:'#ff4080',side:THREE.DoubleSide,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
-  var glowPlane=new THREE.Mesh(gGeo,gMat);glowPlane.renderOrder=0;grp.add(glowPlane);
-
-  // 白色边框
-  var fGeo=new THREE.PlaneGeometry(1.34,1.04);
-  var fMat=new THREE.MeshBasicMaterial({color:'#ffffff',side:THREE.DoubleSide,transparent:true,opacity:.1,depthWrite:false});
-  var framePlane=new THREE.Mesh(fGeo,fMat);framePlane.renderOrder=1;grp.add(framePlane);
-
-  // 照片面
-  var pGeo=new THREE.PlaneGeometry(1.2,.9);
-  var pMat=new THREE.MeshBasicMaterial({color:RING_CONFIG[ringIdx].color,side:THREE.DoubleSide,depthWrite:true});
-  var photoPlane=new THREE.Mesh(pGeo,pMat);photoPlane.position.z=.006;photoPlane.renderOrder=2;grp.add(photoPlane);
-
-  grp.userData={
-    ringIdx:ringIdx,slotIdx:slotIdx,data:slotData.data,
-    photoMesh:photoPlane,glowMesh:glowPlane,frameMesh:framePlane,
-    isHovered:false,worldPos:new THREE.Vector3(),
-    ringGroup:ringGroups[ringIdx],visible:true
-  };
-  scene.add(grp);
-  return grp;
-}
-
-// 为每条轨道创建照片卡片
-for(var r=0;r<RING_CONFIG.length;r++){
-  var slots=RING_CONFIG[r]._slots;
-  for(var s=0;s<slots.length;s++)allCards.push(createPhotoCard(slots[s],r,s));
-}
-
-// ═══════════════════════════════════════
-//  占位纹理生成
-// ═══════════════════════════════════════
-function genPlaceholderTex(idx){
-  var sz=256,c=document.createElement('canvas');
-  c.width=sz;c.height=Math.round(sz*.75);
-  var ctx=c.getContext('2d');
-  var hue=(320+idx*18)%360;
-  var g=ctx.createLinearGradient(0,0,sz,sz*.75);
-  g.addColorStop(0,'hsl('+hue+',60%,22%)');
-  g.addColorStop(.5,'hsl('+((hue+25)%360)+',65%,17%)');
-  g.addColorStop(1,'hsl('+((hue+50)%360)+',55%,13%)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,sz,sz*.75);
-  ctx.fillStyle='rgba(255,255,255,.18)';ctx.font='56px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('❤',sz/2,sz*.375);
-  ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='18px sans-serif';
-  ctx.fillText(String(idx+1),sz/2,sz*.56);
-  var tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex;
-}
-
-// 初始化占位纹理
-allCards.forEach(function(card,i){
-  var tex=genPlaceholderTex(i);
-  card.userData.photoMesh.material.map=tex;
-  card.userData.photoMesh.material.color.set('#fff');
-  card.userData.photoMesh.material.needsUpdate=true;
-});
-
-// ═══════════════════════════════════════
-//  模式系统：轨道 / 星辰
-// ═══════════════════════════════════════
-var currentMode='orbit'; // 'orbit' | 'scatter'
-var isModeAnimating=false;
-
-// ---- 计算星辰模式的散落位置（Fibonacci 球面 + 深度分层）----
-function calcScatterPositions(){
-  var layers=[
-    {radius:9.5, count:8},
-    {radius:7.2, count:7},
-    {radius:5.0, count:5},
-  ];
-  var targets=[];
-  layers.forEach(function(layer){
-    var n=layer.count,r=layer.radius;
-    var phi=Math.PI*(3-Math.sqrt(5));
-    for(var i=0;i<n;i++){
-      var y=1-(i/(n-1))*2;
-      var radAtY=Math.sqrt(1-y*y);
-      var theta=phi*i;
-      targets.push({
-        x:Math.cos(theta)*radAtY*r,
-        y:y*r,
-        z:Math.sin(theta)*radAtY*r
-      });
-    }
-  });
-  // 轻微随机扰动
-  targets.forEach(function(t){
-    t.x+=(Math.random()-.5)*1.2;
-    t.y+=(Math.random()-.5)*.8;
-    t.z+=(Math.random()-.5)*1.2;
-  });
-  return targets;
-}
-
-var scatterTargets=calcScatterPositions();
-
-// 为每张照片分配星辰目标位置
-for(var i=0;i<allCards.length;i++){
-  allCards[i].userData.scatterTarget=scatterTargets[i]||scatterTargets[i%scatterTargets.length];
-}
-
-// ---- 计算轨道位置（在环的局部空间）----
-function getOrbitWorldPos(card){
-  var ud=card.userData;
-  var ringGroup=ud.ringGroup;
-  var cfg=ringGroup.userData.config;
-  var slot=cfg._slots[ud.slotIdx];
-  var angle=slot.angle+ringGroup.rotation.y;
-  var localPos=new THREE.Vector3(Math.cos(angle)*cfg.radius,0,Math.sin(angle)*cfg.radius);
-  return localPos.applyMatrix4(ringGroup.matrixWorld);
-}
-
-// ---- 切换到星辰模式 ----
-function switchToScatter(){
-  if(currentMode==='scatter'||isModeAnimating)return;
-  currentMode='scatter';isModeAnimating=true;
-  btnOrbit.classList.remove('active');btnScatter.classList.add('active');
-
-  allCards.forEach(function(card,i){
-    var tgt=card.userData.scatterTarget;
-    if(HAS_GSAP){
-      gsap.to(card.position,{x:tgt.x,y:tgt.y,z:tgt.z,duration:1.5,ease:'power2.inOut'});
-    }else{
-      card.position.set(tgt.x,tgt.y,tgt.z);
-    }
-  });
-
-  // 渐隐轨道环
+// 双击重置
+viewport.addEventListener('dblclick',function(){
   if(HAS_GSAP){
-    gsap.to({v:ringVisibility},{v:0,duration:1.2,ease:'power2.in',onUpdate:function(t){ringVisibility=t.v;setRingOpacity(ringVisibility)}});
-  }else{ringVisibility=0;setRingOpacity(0)}
-
-  setTimeout(function(){isModeAnimating=false},1600);
-  showToast('已切换到 星辰模式 ✨');
-}
-
-// ---- 切换到轨道模式 ----
-function switchToOrbit(){
-  if(currentMode==='orbit'||isModeAnimating)return;
-  currentMode='orbit';isModeAnimating=true;
-  btnOrbit.classList.add('active');btnScatter.classList.remove('active');
-
-  // 先更新一次轨道位置
-  updateOrbitPhotoPositions();
-
-  allCards.forEach(function(card){
-    var wp=card.userData.worldPos.clone();
-    if(HAS_GSAP){
-      gsap.to(card.position,{x:wp.x,y:wp.y,z:wp.z,duration:1.5,ease:'power2.inOut'});
-    }else{
-      card.position.copy(wp);
-    }
-  });
-
-  // 渐显轨道环
-  if(HAS_GSAP){
-    gsap.to({v:ringVisibility},{v:1,duration:1.2,ease:'power2.out',onUpdate:function(t){ringVisibility=t.v;setRingOpacity(ringVisibility)}});
-  }else{ringVisibility=1;setRingOpacity(1)}
-
-  setTimeout(function(){isModeAnimating=false},1600);
-  showToast('已切换到 轨道模式 💫');
-}
-
-function setRingOpacity(v){
-  ringGroups.forEach(function(g){
-    g.children.forEach(function(c){
-      if(c.material&&c.material.blending===THREE.AdditiveBlending){
-        if(c.name==='glow')c.material.opacity=.08*v;
-        else if(c instanceof THREE.Points)c.material.opacity=.65*v;
-        else if(c instanceof THREE.Mesh&&c.geometry.type==='TorusGeometry'){
-          if(c.geometry.parameters.tube<.03)c.material.opacity=.45*v;
-          else c.material.opacity=.08*v;
-        }
-      }
-    });
-  });
-}
-
-// ---- 更新轨道模式下的照片位置 ----
-function updateOrbitPhotoPositions(){
-  allCards.forEach(function(card){
-    if(currentMode==='orbit'&&!isModeAnimating){
-      var wp=getOrbitWorldPos(card);
-      card.userData.worldPos.copy(wp);
-      card.position.copy(wp);
-    }
-  });
-}
-
-// ═══════════════════════════════════════
-//  模式切换按钮
-// ═══════════════════════════════════════
-btnOrbit.addEventListener('click',switchToOrbit);
-btnScatter.addEventListener('click',switchToScatter);
-
-// ═══════════════════════════════════════
-//  悬停检测（Raycaster）
-// ═══════════════════════════════════════
-var raycaster=new THREE.Raycaster();
-var mouseNDC=new THREE.Vector2();
-var hoveredCard=null;
-
-function getPhotoIntersections(){
-  raycaster.setFromCamera(mouseNDC,camera);
-  var targets=allCards.map(function(c){return c.userData.photoMesh});
-  return raycaster.intersectObjects(targets,false);
-}
-
-function onHoverMove(e){
-  mouseNDC.x=(e.clientX/window.innerWidth)*2-1;
-  mouseNDC.y=-(e.clientY/window.innerHeight)*2+1;
-
-  // 放大浮层打开时不检测悬停
-  if(enlargeOver.classList.contains('show'))return;
-
-  var hits=getPhotoIntersections();
-  var newHovered=null;
-  if(hits.length>0){
-    var obj=hits[0].object;
-    for(var i=0;i<allCards.length;i++){if(allCards[i].userData.photoMesh===obj){newHovered=allCards[i];break}}
-  }
-
-  if(newHovered!==hoveredCard){
-    // 离开
-    if(hoveredCard){
-      var hud=hoveredCard.userData;hud.isHovered=false;
-      if(HAS_GSAP){
-        gsap.to(hoveredCard.scale,{x:1,y:1,z:1,duration:.3,ease:'power2.out'});
-        gsap.to(hud.glowMesh.material,{opacity:0,duration:.3});
-      }else{hoveredCard.scale.set(1,1,1);hud.glowMesh.material.opacity=0}
-      hud.frameMesh.material.opacity=.1;
-      hud.glowMesh.material.color.set('#ff4080');
-    }
-    // 进入
-    if(newHovered){
-      var nud=newHovered.userData;nud.isHovered=true;
-      if(HAS_GSAP){
-        gsap.to(newHovered.scale,{x:1.3,y:1.3,z:1.3,duration:.3,ease:'power2.out'});
-        gsap.to(nud.glowMesh.material,{opacity:.55,duration:.3});
-      }else{newHovered.scale.set(1.3,1.3,1.3);nud.glowMesh.material.opacity=.55}
-      nud.frameMesh.material.opacity=.28;
-      nud.glowMesh.material.color.set('#ffb347'); // 金色发光
-    }
-    hoveredCard=newHovered;
-  }
-  renderer.domElement.style.cursor=hoveredCard?'pointer':'grab';
-}
-
-window.addEventListener('mousemove',function(e){
-  if(isDown)return; // 拖拽时不处理悬停
-  onHoverMove(e);
+    gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){
+      panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoardTransform();
+    }});
+  }else{panX=0;panY=0;zoom=1;updateBoardTransform()}
+  showToast('视角已重置');
 });
 
-// ═══════════════════════════════════════
-//  点击照片 → 放大浮层
-// ═══════════════════════════════════════
-renderer.domElement.addEventListener('click',function(e){
-  if(dragMoved||isModeAnimating)return; // 拖拽后不触发点击
-  if(enlargeOver.classList.contains('show'))return; // 已放大中
+// ═══════════════════════════════════
+//  点击照片 → 全屏放大
+// ═══════════════════════════════════
+var enlargedIndex=-1;
 
-  // 先更新悬停检测
-  mouseNDC.x=(e.clientX/window.innerWidth)*2-1;
-  mouseNDC.y=-(e.clientY/window.innerHeight)*2+1;
-  var hits=getPhotoIntersections();
-  if(hits.length===0)return;
+function enlargeCard(index){
+  if(enlargedIndex>=0)return;
+  enlargedIndex=index;
+  var card=cards[index];
 
-  var obj=hits[0].object;
-  var clickedCard=null;
-  for(var i=0;i<allCards.length;i++){if(allCards[i].userData.photoMesh===obj){clickedCard=allCards[i];break}}
-  if(!clickedCard)return;
-
-  // 获取照片纹理生成图片 URL
-  var mat=clickedCard.userData.photoMesh.material;
-  var tex=mat.map;
-  if(tex&&tex.image&&tex.image instanceof HTMLCanvasElement){
-    enlargeImg.src=tex.image.toDataURL('image/jpeg',.9);
-  }else if(tex&&tex.source&&tex.source.data){
-    // 用户加载的纹理
-    var c=document.createElement('canvas');
-    c.width=512;c.height=384;
-    var ctx=c.getContext('2d');
-    // 尝试通过渲染来获取...用一个备用方法
-    enlargeImg.src='';
-  }
-
-  // 通过重绘生成缩略图
-  try{
-    var tmpCanvas=document.createElement('canvas');
-    tmpCanvas.width=512;tmpCanvas.height=384;
-    var tmpCtx=tmpCanvas.getContext('2d');
-    // 用 photoMesh 的颜色作为背景
-    tmpCtx.fillStyle='#1a0020';tmpCtx.fillRect(0,0,512,384);
-    if(tex&&tex.image){
-      tmpCtx.drawImage(tex.image,0,0,512,384);
-    }
-    enlargeImg.src=tmpCanvas.toDataURL('image/jpeg',.9);
-  }catch(err){
-    enlargeImg.src='';
-  }
-
-  var data=clickedCard.userData.data;
-  capT.textContent=data.title;
-  capS.textContent=data.sub;
+  // 获取图片源
+  enlargeImg.src=card.img.src;
+  capT.textContent=card.data.title;
+  capS.textContent=card.data.sub;
   enlargeOver.classList.add('show');
 
-  // 隐藏其他照片卡片的 3D 层
-  allCards.forEach(function(c){
-    if(c!==clickedCard){
-      if(HAS_GSAP)gsap.to(c.userData.glowMesh.material,{opacity:0,duration:.35});
-      if(HAS_GSAP)gsap.to(c.scale,{x:.01,y:.01,z:.01,duration:.35});
-      else{c.scale.set(.01,.01,.01);c.userData.glowMesh.material.opacity=0}
-    }
-  });
-});
+  // 高亮当前卡片
+  card.el.classList.add('enlarged');
+}
 
-// ═══════════════════════════════════════
-//  关闭放大浮层
-// ═══════════════════════════════════════
 function closeEnlarge(){
-  if(!enlargeOver.classList.contains('show'))return;
+  if(enlargedIndex<0)return;
   enlargeOver.classList.remove('show');
-
-  // 恢复所有照片
-  allCards.forEach(function(c){
-    if(HAS_GSAP){
-      gsap.to(c.scale,{x:1,y:1,z:1,duration:.35,ease:'power2.out'});
-    }else{c.scale.set(1,1,1)}
-    c.userData.glowMesh.material.opacity=0;
-    c.userData.frameMesh.material.opacity=.1;
-  });
-  hoveredCard=null;
+  if(cards[enlargedIndex])cards[enlargedIndex].el.classList.remove('enlarged');
+  enlargedIndex=-1;
 }
 
 enlargeClose.addEventListener('click',closeEnlarge);
 enlargeOver.addEventListener('click',function(e){if(e.target===enlargeOver)closeEnlarge()});
 
-// 键盘 ESC 关闭
+// ═══════════════════════════════════
+//  按钮：重置视角
+// ═══════════════════════════════════
+btnReset.addEventListener('click',function(){
+  closeEnlarge();
+  if(HAS_GSAP){
+    gsap.to({px:panX,py:panY,z:zoom},{px:0,py:0,z:1,duration:.8,ease:'power2.out',onUpdate:function(t){
+      panX=t.targets[0].px;panY=t.targets[0].py;zoom=t.targets[0].z;updateBoardTransform();
+    }});
+  }else{panX=0;panY=0;zoom=1;updateBoardTransform()}
+  showToast('视角已重置');
+});
+
+// ═══════════════════════════════════
+//  键盘快捷键
+// ═══════════════════════════════════
 window.addEventListener('keydown',function(e){
   if(e.key==='Escape'){closeEnlarge();return}
-  switch(e.key.toLowerCase()){
-    case'r':autoRotate=!autoRotate;showToast(autoRotate?'自动旋转：开':'自动旋转：关');break;
-    case'h':var op=uiLayer.style.opacity==='0'?'1':'0';uiLayer.style.opacity=op;break;
+  switch(e.key){
+    case'1':modeBtns[0].click();break;
+    case'2':modeBtns[1].click();break;
+    case'3':modeBtns[2].click();break;
+    case'4':modeBtns[3].click();break;
+    case'h':document.querySelector('.ui-layer').style.opacity=document.querySelector('.ui-layer').style.opacity==='0'?'1':'0';break;
   }
 });
 
-// ═══════════════════════════════════════
-//  文件加载（替换照片纹理）
-// ═══════════════════════════════════════
-var userTextures=[];
-
+// ═══════════════════════════════════
+//  文件加载
+// ═══════════════════════════════════
 function showToast(msg,dur){
-  dur=dur||2200;toastEl.textContent=msg;toastEl.classList.add('show');
+  dur=dur||2000;toastEl.textContent=msg;toastEl.classList.add('show');
   clearTimeout(toastEl._tid);toastEl._tid=setTimeout(function(){toastEl.classList.remove('show')},dur);
 }
 
@@ -753,16 +656,13 @@ function loadImageFile(file){
       var img=new Image();
       img.onload=function(){
         var canvas=document.createElement('canvas');
-        var tw=512,th=384;canvas.width=tw;canvas.height=th;
+        var tw=320,th=240;canvas.width=tw;canvas.height=th;
         var ctx=canvas.getContext('2d');
         var iw=img.width,ih=img.height,tr=4/3,ir=iw/ih,sx,sy,sw,sh;
         if(ir>tr){sh=ih;sw=ih*tr;sy=0;sx=(iw-sw)/2}else{sw=iw;sh=iw/tr;sx=0;sy=(ih-sh)/2}
-        ctx.fillStyle='#1a0020';ctx.fillRect(0,0,tw,th);
+        ctx.fillStyle='#fce4ec';ctx.fillRect(0,0,tw,th);
         ctx.drawImage(img,sx,sy,sw,sh,0,0,tw,th);
-        var tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
-        tex.minFilter=THREE.LinearMipmapLinearFilter;tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=true;
-        tex.source={data:canvas}; // 保存引用供放大查看
-        resolve(tex);
+        resolve(canvas.toDataURL('image/jpeg',.88));
       };
       img.onerror=reject;img.src=e.target.result;
     };
@@ -774,30 +674,25 @@ async function handleFiles(files){
   var imgs=Array.from(files).filter(function(f){return f.type.startsWith('image/')});
   if(imgs.length===0){showToast('未检测到图片文件');return}
   showToast('正在加载 '+imgs.length+' 张照片...');
-  userTextures.forEach(function(t){if(t.dispose)t.dispose()});userTextures=[];
 
-  var con=8;
+  var con=8,urls=[];
   for(var i=0;i<imgs.length;i+=con){
     var batch=imgs.slice(i,i+con);
-    var texs=await Promise.all(batch.map(function(f){return loadImageFile(f).catch(function(){return null})}));
-    for(var j=0;j<texs.length;j++){if(texs[j])userTextures.push(texs[j])}
+    var results=await Promise.all(batch.map(function(f){return loadImageFile(f).catch(function(){return null})}));
+    for(var j=0;j<results.length;j++){if(results[j])urls.push(results[j])}
   }
 
-  allCards.forEach(function(card,i){
-    if(userTextures.length===0)return;
-    var tex=userTextures[i%userTextures.length];
-    card.userData.photoMesh.material.map=tex;
-    card.userData.photoMesh.material.color.set('#fff');
-    card.userData.photoMesh.material.needsUpdate=true;
-    card.userData.frameMesh.material.opacity=.06;
+  cards.forEach(function(card,i){
+    if(urls.length===0)return;
+    card.img.src=urls[i%urls.length];
   });
-  showToast('已加载 '+userTextures.length+' 张照片 ✨');
+  showToast('已加载 '+urls.length+' 张照片 ✨');
 }
 
 btnPick.addEventListener('click',function(){fileInput.click()});
 fileInput.addEventListener('change',function(){if(fileInput.files.length>0)handleFiles(fileInput.files)});
 
-// 拖拽文件夹加载
+// 拖拽文件夹
 var dragCnt=0;
 document.addEventListener('dragenter',function(e){e.preventDefault();dragCnt++});
 document.addEventListener('dragleave',function(e){e.preventDefault();dragCnt--});
@@ -815,85 +710,13 @@ document.addEventListener('drop',async function(e){
   if(files.length>0)await handleFiles(files);
 });
 
-// ═══════════════════════════════════════
-//  动画循环
-// ═══════════════════════════════════════
-var clock=new THREE.Clock();
-
-function animate(){
-  requestAnimationFrame(animate);
-  var t=clock.getElapsedTime();
-
-  // 放大浮层打开时，暂停自动旋转
-  var prevAuto=autoRotate;
-  if(enlargeOver.classList.contains('show'))autoRotate=false;
-  updateControls();
-  if(enlargeOver.classList.contains('show'))autoRotate=prevAuto;
-
-  // 旋转轨道环
-  for(var i=0;i<ringGroups.length;i++){
-    ringGroups[i].rotateY(RING_CONFIG[i].speed*.007);
-  }
-
-  // 轨道模式：更新照片位置 + Billboard
-  if(currentMode==='orbit'&&!isModeAnimating){
-    updateOrbitPhotoPositions();
-  }
-
-  // 星辰模式 / 通用：Billboard
-  allCards.forEach(function(card){
-    if(card.scale.x<.1)return; // 已隐藏的跳过
-    if(currentMode==='scatter'&&!isModeAnimating){
-      card.userData.worldPos.copy(card.position);
-    }
-    card.lookAt(camera.position);
-  });
-
-  // 中心光呼吸
-  ptCenter.intensity=63+Math.sin(t*2.5)*14;
-  ptFill.intensity=17+Math.sin(t*2.5+1)*8;
-
-  // 漂浮粒子动画
-  var fp=floatingPts.geometry.attributes.position.array,fi=floatingInit;
-  for(var j=0;j<fp.length;j+=3){
-    fp[j+1]=fi[j+1]+Math.sin(t*.7+j)*.3;
-    fp[j]=fi[j]+Math.cos(t*.5+j)*.2;
-  }
-  floatingPts.geometry.attributes.position.needsUpdate=true;
-
-  // 星空微动
-  starfieldPts.rotateY(.00006);
-  starfieldPts.rotateX(.00003);
-
-  renderer.render(scene,camera);
-}
-
-// ═══════════════════════════════════════
-//  响应式
-// ═══════════════════════════════════════
-window.addEventListener('resize',function(){
-  camera.aspect=window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth,window.innerHeight);
-});
-
-// ═══════════════════════════════════════
+// ═══════════════════════════════════
 //  启动
-// ═══════════════════════════════════════
-loadingEl.style.opacity='0';
-setTimeout(function(){loadingEl.remove()},600);
-uiLayer.style.opacity='1';
-
-// 初始：所有照片定位到轨道
-updateOrbitPhotoPositions();
-allCards.forEach(function(card){card.position.copy(card.userData.worldPos)});
-
-animate();
-
-console.log('💕 520 · 我们的星辰大海 已就绪');
-console.log('  拖拽旋转 | 滚轮缩放 | 悬停预览');
-console.log('  点击照片全屏 | 底部按钮切换模式');
-console.log('  R=自动旋转 | Esc=关闭 | H=隐藏UI');
+// ═══════════════════════════════════
+updateBoardTransform();
+console.log('💕 520 照片墙已就绪');
+console.log('  拖拽平移 | 滚轮缩放 | 双击重置');
+console.log('  1/2/3/4 切换排列模式 | Esc 关闭全屏');
 })();
 </script>
 </body>
